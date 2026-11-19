@@ -1,0 +1,430 @@
+// ==========================================================================
+// AU Campaign CRM — Enterprise Modal Dialogs (Stripe Forms & Attio Layout)
+// ==========================================================================
+
+import { state } from '../state.js';
+import { ST, APS, NOTE_SNIPPETS, IC } from '../config.js';
+import { esc } from '../utils/dom.js';
+import { isA } from '../services/auth.js';
+import { getQuickCallbackTime } from '../utils/dates.js';
+
+export function openLg(id) {
+  const c = state.D.companies.find(x => x.id == id);
+  if (!c) return;
+
+  const m = document.createElement('div');
+  m.id = 'm';
+  m.innerHTML = `
+    <div class="mb">
+      <div class="mb-header">
+        <div>
+          <h3>Log Call with ${esc(c.name)}</h3>
+          <p class="mu" style="margin:2px 0 0;font-size:12px">Record call outcome, interaction notes, and callback</p>
+        </div>
+        <button class="mb-close" data-act="x" title="Close dialog">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      ${c.phone ? `
+        <div style="background:var(--bg-app);border:1px solid var(--border-default);padding:8px 12px;border-radius:var(--radius-sm);margin-bottom:14px">
+          <a class="lk" href="tel:${esc(c.phone)}" style="font-family:var(--font-mono);font-size:13px">
+            ${IC.phone} ${esc(c.phone)}
+          </a>
+        </div>
+      ` : '<div class="mu" style="margin-bottom:14px">No telephone on file</div>'}
+
+      <form id="flg" data-id="${id}">
+        <div class="form-field">
+          <label>Call Outcome / Disposition</label>
+          <select name="status">
+            ${ST.map(s => `<option value="${s}" ${c.status === s ? 'selected' : ''}>${s === 'New' ? 'Not Called' : s}</option>`).join('')}
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label>Company Telephone</label>
+          <input name="phone" placeholder="e.g. 02 9000 0000" value="${esc(c.phone || '')}">
+        </div>
+
+        <div class="form-field">
+          <label>Contact Person Name</label>
+          <input name="contact" placeholder="Person you spoke with" value="${esc(c.contact || '')}">
+        </div>
+
+        <div class="g2" style="margin-bottom:0">
+          <div class="form-field">
+            <label>Direct Mobile / Alternate Phone</label>
+            <input name="altPhone" placeholder="e.g. 0412 345 678" value="${esc(c.altPhone || '')}">
+          </div>
+          <div class="form-field">
+            <label>Direct Email Address</label>
+            <input name="email" type="email" placeholder="direct.contact@company.com" value="${esc(c.email || '')}">
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label>Scheduled Callback Date & Time</label>
+          <input type="datetime-local" name="cb" id="lg-cb" value="${(c.cb || '').slice(0, 16)}">
+          <div class="cb-shortcuts">
+            <button type="button" class="cb-btn" data-act="set-cb" data-target="#lg-cb" data-type="2h">+2 Hours</button>
+            <button type="button" class="cb-btn" data-act="set-cb" data-target="#lg-cb" data-type="tomorrow_10am">Tomorrow 10 AM</button>
+            <button type="button" class="cb-btn" data-act="set-cb" data-target="#lg-cb" data-type="tomorrow_2pm">Tomorrow 2 PM</button>
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label>Interaction Notes</label>
+          <div class="snippet-grid">
+            ${NOTE_SNIPPETS.slice(0, 5).map(snip => `
+              <button type="button" class="snippet-chip" data-act="add-snippet" data-target="#lg-notes" data-val="${esc(snip)}">+ ${esc(snip)}</button>
+            `).join('')}
+          </div>
+          <textarea id="lg-notes" name="notes" placeholder="Notes from this interaction...">${esc(c.notes || '')}</textarea>
+        </div>
+
+        <div class="row" style="justify-content:flex-end;margin-top:14px;gap:8px">
+          <button type="button" class="btn" data-act="x">Cancel</button>
+          <button class="btn pri">Save Call Log</button>
+        </div>
+      </form>
+    </div>`;
+  document.body.append(m);
+}
+
+export function openAp(id, co) {
+  const defaultCoId = co || state.D.companies[0]?.id;
+  const selectedCo = state.D.companies.find(x => x.id == defaultCoId);
+  const a = id ? state.D.appts.find(x => x.id == id) : {
+    co: defaultCoId,
+    contact: selectedCo?.contact || '',
+    stand: selectedCo?.stand || '',
+    status: 'New Appointment',
+    calls: 0
+  };
+  if (!a) return;
+
+  const m = document.createElement('div');
+  m.id = 'm';
+  m.innerHTML = `
+    <div class="mb">
+      <div class="mb-header">
+        <div>
+          <h3>${id ? 'Edit Sales Appointment' : 'Book Sales Appointment'}</h3>
+          <p class="mu" style="margin:2px 0 0;font-size:12px">Track exhibition space appointment, meeting time and quote</p>
+        </div>
+        <button class="mb-close" data-act="x">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <form id="fap" data-id="${id || ''}">
+        <div class="form-field">
+          <label>Company / Exhibitor</label>
+          <select name="co" required>
+            ${state.D.companies.map(c => `<option value="${c.id}" ${a.co == c.id ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}
+          </select>
+        </div>
+
+        <div class="g2" style="margin-bottom:0">
+          <div class="form-field">
+            <label>Key Contact Name</label>
+            <input name="contact" placeholder="Contact person" value="${esc(a.contact || '')}">
+          </div>
+          <div class="form-field">
+            <label>Stand Requirement</label>
+            <input name="stand" placeholder="e.g. Shell Scheme 3x3, Space Only" value="${esc(a.stand || '')}">
+          </div>
+        </div>
+
+        <div class="g2" style="margin-bottom:0">
+          <div class="form-field">
+            <label>Pipeline Stage</label>
+            <select name="status">
+              ${APS.map(s => `<option ${a.status === s ? 'selected' : ''}>${s}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Next Call / Meeting Time</label>
+            <input type="datetime-local" name="next" value="${(a.next || '').slice(0, 16)}">
+          </div>
+        </div>
+
+        <div class="g2" style="margin-bottom:0">
+          <div class="form-field">
+            <label>Quote Reference</label>
+            <input name="quote" placeholder="e.g. SP-2026-001" value="${esc(a.quote || '')}">
+          </div>
+          <div class="form-field">
+            <label>Assigned Sales Rep</label>
+            <input name="with" placeholder="Sales Rep Name" value="${esc(a.with || '')}">
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label>Number of Calls Completed</label>
+          <input type="number" min="0" name="calls" value="${a.calls || 0}">
+        </div>
+
+        <div class="row" style="justify-content:space-between;margin-top:16px">
+          ${id && !isA() ? `<button type="button" class="btn btn-danger" data-act="apdel" data-id="${id}">Delete Appointment</button>` : '<div></div>'}
+          <div class="row" style="margin:0;gap:8px">
+            <button type="button" class="btn" data-act="x">Cancel</button>
+            <button class="btn pri">Save Appointment</button>
+          </div>
+        </div>
+      </form>
+    </div>`;
+  document.body.append(m);
+}
+
+export function openCo(id, presetEv) {
+  // Disallow agents from adding new companies
+  if (!id && isA()) {
+    alert('Adding new companies is restricted to Administrators.');
+    return;
+  }
+
+  const c = id ? state.D.companies.find(x => x.id == id) : {
+    ev: presetEv || state.F.ev || state.D.events[0]?.id || 1,
+    status: 'New'
+  };
+  if (!c) return;
+
+  const m = document.createElement('div');
+  m.id = 'm';
+
+  // ------------------------------------------------------------------------
+  // Agent Modal: Only phone number updates and managing/adding contacts
+  // ------------------------------------------------------------------------
+  if (isA()) {
+    const evObj = state.D.events.find(x => x.id == c.ev);
+    const evName = evObj ? evObj.name : 'Unassigned';
+
+    m.innerHTML = `
+      <div class="mb">
+        <div class="mb-header">
+          <div>
+            <h3>Update Contacts & Phone</h3>
+            <p class="mu" style="margin:2px 0 0;font-size:12px">Update primary telephone and decision maker contact info</p>
+          </div>
+          <button class="mb-close" data-act="x">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+
+        <div style="background:var(--bg-app);padding:12px 14px;border-radius:var(--radius-sm);margin-bottom:16px;border:1px solid var(--border-default)">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <b style="font-size:14.5px;color:var(--tx-primary)">${esc(c.name)}</b>
+            <span class="pill pill-new" style="font-size:10.5px">Core Record Protected</span>
+          </div>
+          <div class="mu" style="font-size:12px">Campaign: <b>${esc(evName)}</b> ${c.stand ? `· Stand: <b>${esc(c.stand)}</b>` : ''} · Status: <b>${esc(c.status || 'New')}</b></div>
+        </div>
+
+        <form id="fc" data-id="${id}">
+          <div style="margin-bottom:10px;font-weight:600;font-size:12px;color:var(--tx-secondary);text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid var(--border-default);padding-bottom:4px">
+            Primary Telephony
+          </div>
+          <div class="form-field">
+            <label>Primary Company Telephone</label>
+            <input name="phone" placeholder="e.g. 02 9000 0000" value="${esc(c.phone || '')}">
+            <small class="mu" style="font-size:11px">Main switchboard, general office line, or primary telephone</small>
+          </div>
+
+          <div style="margin:16px 0 10px;font-weight:600;font-size:12px;color:var(--tx-secondary);text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid var(--border-default);padding-bottom:4px">
+            Primary Contact Person
+          </div>
+          <div class="form-field">
+            <label>Contact Name & Title</label>
+            <input name="contact" placeholder="e.g. Jane Doe (Marketing Director)" value="${esc(c.contact || '')}">
+          </div>
+          <div class="g2" style="margin-bottom:0">
+            <div class="form-field">
+              <label>Direct Mobile / Alternate Phone</label>
+              <input name="altPhone" placeholder="e.g. 0412 345 678" value="${esc(c.altPhone || '')}">
+            </div>
+            <div class="form-field">
+              <label>Contact Email Address</label>
+              <input name="email" type="email" placeholder="jane@company.com" value="${esc(c.email || '')}">
+            </div>
+          </div>
+
+          <div style="margin:16px 0 10px;font-weight:600;font-size:12px;color:var(--tx-secondary);text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid var(--border-default);padding-bottom:4px">
+            Additional Contact Person (Optional)
+          </div>
+          <div class="form-field">
+            <label>Additional Contact Name & Title</label>
+            <input name="contact2" placeholder="e.g. Mark Smith (Operations Manager)" value="${esc(c.contact2 || '')}">
+          </div>
+          <div class="g2" style="margin-bottom:0">
+            <div class="form-field">
+              <label>Additional Contact Mobile</label>
+              <input name="phone2" placeholder="e.g. 0423 456 789" value="${esc(c.phone2 || '')}">
+            </div>
+            <div class="form-field">
+              <label>Additional Contact Email</label>
+              <input name="email2" type="email" placeholder="mark@company.com" value="${esc(c.email2 || '')}">
+            </div>
+          </div>
+
+          <div class="row" style="justify-content:flex-end;margin-top:18px;gap:8px">
+            <button type="button" class="btn" data-act="x">Cancel</button>
+            <button class="btn pri">Save Contact Updates</button>
+          </div>
+        </form>
+      </div>`;
+    document.body.append(m);
+    return;
+  }
+
+  // ------------------------------------------------------------------------
+  // Admin Modal: Full Company Add / Edit
+  // ------------------------------------------------------------------------
+  m.innerHTML = `
+    <div class="mb">
+      <div class="mb-header">
+        <div>
+          <h3>${id ? 'Edit Company Record' : 'Add New Company'}</h3>
+          <p class="mu" style="margin:2px 0 0;font-size:12px">Manage company identity, campaign allocation, and contact records</p>
+        </div>
+        <button class="mb-close" data-act="x">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <form id="fc" data-id="${id || ''}">
+        <div class="form-field">
+          <label>Company Legal / Trading Name</label>
+          <input name="name" placeholder="Company Name Pty Ltd" value="${esc(c.name || '')}" required>
+        </div>
+
+        <div class="g2" style="margin-bottom:0">
+          <div class="form-field">
+            <label>Campaign / Event</label>
+            <select name="ev">
+              ${state.D.events.map(e => `<option value="${e.id}" ${c.ev == e.id ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Stand / Booth Details</label>
+            <input name="stand" placeholder="e.g. 3x3 Shell Scheme, Stand 42" value="${esc(c.stand || '')}">
+          </div>
+        </div>
+
+        <div style="margin:16px 0 10px;font-weight:600;font-size:12px;color:var(--tx-secondary);text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid var(--border-default);padding-bottom:4px">
+          Telephony & Status
+        </div>
+        <div class="g2" style="margin-bottom:0">
+          <div class="form-field">
+            <label>Primary Telephone</label>
+            <input name="phone" placeholder="e.g. 02 9000 0000" value="${esc(c.phone || '')}">
+          </div>
+          <div class="form-field">
+            <label>Outreach Status</label>
+            <select name="status">
+              ${ST.map(s => `<option ${c.status === s ? 'selected' : ''}>${s}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+
+        <div style="margin:16px 0 10px;font-weight:600;font-size:12px;color:var(--tx-secondary);text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid var(--border-default);padding-bottom:4px">
+          Primary Contact Details
+        </div>
+        <div class="form-field">
+          <label>Primary Contact Name</label>
+          <input name="contact" placeholder="Contact person" value="${esc(c.contact || '')}">
+        </div>
+        <div class="g2" style="margin-bottom:0">
+          <div class="form-field">
+            <label>Direct Mobile / Alt Phone</label>
+            <input name="altPhone" placeholder="e.g. 0412 345 678" value="${esc(c.altPhone || '')}">
+          </div>
+          <div class="form-field">
+            <label>Direct Email Address</label>
+            <input name="email" type="email" placeholder="lead@company.com" value="${esc(c.email || '')}">
+          </div>
+        </div>
+
+        <div style="margin:16px 0 10px;font-weight:600;font-size:12px;color:var(--tx-secondary);text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid var(--border-default);padding-bottom:4px">
+          Additional / Secondary Contact
+        </div>
+        <div class="form-field">
+          <label>Additional Contact Name</label>
+          <input name="contact2" placeholder="Secondary contact person" value="${esc(c.contact2 || '')}">
+        </div>
+        <div class="g2" style="margin-bottom:0">
+          <div class="form-field">
+            <label>Additional Contact Mobile</label>
+            <input name="phone2" placeholder="e.g. 0423 456 789" value="${esc(c.phone2 || '')}">
+          </div>
+          <div class="form-field">
+            <label>Additional Contact Email</label>
+            <input name="email2" type="email" placeholder="contact2@company.com" value="${esc(c.email2 || '')}">
+          </div>
+        </div>
+
+        <div style="margin:16px 0 10px;font-weight:600;font-size:12px;color:var(--tx-secondary);text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid var(--border-default);padding-bottom:4px">
+          Callback Schedule & Notes
+        </div>
+        <div class="form-field">
+          <label>Callback Date & Time</label>
+          <input type="datetime-local" name="cb" id="co-cb" value="${(c.cb || '').slice(0, 16)}">
+        </div>
+        <div class="form-field">
+          <label>Lead Notes & History</label>
+          <textarea name="notes" placeholder="Notes...">${esc(c.notes || '')}</textarea>
+        </div>
+        <div class="row" style="justify-content:space-between;margin-top:16px">
+          ${id ? `<button type="button" class="btn btn-danger" data-act="del" data-id="${id}">Delete Company</button>` : '<div></div>'}
+          <div class="row" style="margin:0;gap:8px">
+            <button type="button" class="btn" data-act="x">Cancel</button>
+            <button class="btn pri">${id ? 'Save Changes' : 'Create Company'}</button>
+          </div>
+        </div>
+      </form>
+    </div>`;
+  document.body.append(m);
+}
+
+export function openEventModal(id) {
+  const e = id ? state.D.events.find(x => x.id == id) : { name: '', start: '', end: '', where: '' };
+  if (!e) return;
+
+  const m = document.createElement('div');
+  m.id = 'm';
+  m.innerHTML = `
+    <div class="mb">
+      <div class="mb-header">
+        <div>
+          <h3>${id ? 'Edit Campaign Event' : 'Add Campaign Event'}</h3>
+          <p class="mu" style="margin:2px 0 0;font-size:12px">Register an exhibition, tradeshow or outreach campaign</p>
+        </div>
+        <button class="mb-close" data-act="x">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <form id="fe" data-id="${id || ''}">
+        <div class="form-field">
+          <label>Event / Exhibition Name</label>
+          <input name="name" placeholder="e.g. Melbourne Build Expo 2026" value="${esc(e.name || '')}" required>
+        </div>
+        <div class="g2" style="margin-bottom:0">
+          <div class="form-field">
+            <label>Start Date</label>
+            <input type="date" name="start" value="${e.start || ''}">
+          </div>
+          <div class="form-field">
+            <label>End Date</label>
+            <input type="date" name="end" value="${e.end || ''}">
+          </div>
+        </div>
+        <div class="form-field">
+          <label>Venue / Location</label>
+          <input name="where" placeholder="e.g. Sydney Convention Centre, Darling Harbour" value="${esc(e.where || '')}">
+        </div>
+        <div class="row" style="justify-content:flex-end;margin-top:16px;gap:8px">
+          <button type="button" class="btn" data-act="x">Cancel</button>
+          <button class="btn pri">Save Campaign</button>
+        </div>
+      </form>
+    </div>`;
+  document.body.append(m);
+}

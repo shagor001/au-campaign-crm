@@ -1,0 +1,211 @@
+/* ==========================================================================
+   AU Campaign CRM — Unified Design System Tokens (Attio + Linear + Stripe)
+   ========================================================================== */
+
+:root {
+  /* Surface & Background Colors */
+  --bg-app: #F8F9FB;              /* Application background */
+  --bg-surface: #FFFFFF;          /* Cards, panels, dropdowns */
+  --bg-sidebar: #FFFFFF;          /* Navigation sidebar */
+  --bg-subtle: #F3F4F6;           /* Hover states, secondary areas */
+  --bg-muted: #E5E7EB;            /* Disabled or muted surfaces */
+  --bg-input: #FFFFFF;            /* Form input background */
+
+  /* Text & Content Colors */
+  --tx-primary: #17191D;          /* High-emphasis text & headings */
+  --tx-secondary: #525866;        /* Medium-emphasis body & labels */
+  --tx-muted: #8E95A3;            /* Low-emphasis meta, placeholders */
+  --tx-inverse: #FFFFFF;          /* Text on dark/accent surfaces */
+
+  /* Borders & Dividers */
+  --border-subtle: #F0F1F3;       /* Delicate dividers */
+  --border-default: #E8E9ED;      /* Standard card, table & input borders */
+  --border-hover: #D1D5DB;        /* Hover border state */
+  --border-focus: #5B5BD6;        /* Focus border state */
+
+  /* Primary Accent (Linear / Attio Indigo) */
+  --accent-primary: #5B5BD6;
+  --accent-hover: #4B4BC0;
+  --accent-active: #3E3EA8;
+  --accent-subtle: rgba(91, 91, 214, 0.08);
+  --accent-subtle-hover: rgba(91, 91, 214, 0.12);
+  --accent-border: rgba(91, 91, 214, 0.25);
+  --accent-text: #5B5BD6;
+
+  /* Semantic Feedback Colors (Stripe Standard) */
+  /* Success */
+  --color-success: #16865B;
+  --color-success-bg: #E8F5EE;
+  --color-success-border: rgba(22, 134, 91, 0.25);
+  --color-success-text: #0E5C3E;
+
+  /* Warning / Callback */
+  --color-warning: #D99428;
+  --color-warning-bg: #FEF7EB;
+  --color-warning-border: rgba(217, 148, 40, 0.25);
+  --color-warning-text: #966113;
+
+  /* Danger / Destructive */
+  --color-danger: #D94B4B;
+  --color-danger-bg: #FDECEC;
+  --color-danger-border: rgba(217, 75, 75, 0.25);
+  --color-danger-text: #9A2828;
+
+  /* Info / Blue */
+  --color-info: #2563EB;
+  --color-info-bg: #EFF6FF;
+  --color-info-border: rgba(37, 99, 235, 0.25);
+  --color-info-text: #1D4ED8;
+
+  /* Neutral / Not Interested */
+  --color-neutral: #6B7280;
+  --color-neutral-bg: #F3F4F6;
+  --color-neutral-border: #E5E7EB;
+  --color-neutral-text: #374151;
+
+  /* Backward Compatibility Variables */
+  --bg: var(--bg-app);
+  --cd: var(--bg-surface);
+  --tx: var(--tx-primary);
+  --mu: var(--tx-secondary);
+  --bd: var(--border-default);
+  --bd-focus: var(--border-focus);
+  --ac: var(--accent-primary);
+  --ac-hover: var(--accent-hover);
+  --ac2: var(--accent-subtle);
+  --ac2-tx: var(--accent-text);
+  --rd: var(--color-danger);
+  --rd-bg: var(--color-danger-bg);
+  --rd-tx: var(--color-danger-text);
+  --wr: var(--color-warning);
+  --wr-bg: var(--color-warning-bg);
+  --wr-tx: var(--color-warning-text);
+  --sc: var(--color-success);
+  --sc-bg: var(--color-success-bg);
+  --sc-tx: var(--color-success-text);
+  --bl: var(--color-info);
+  --bl-bg: var(--color-info-bg);
+  --bl-tx: var(--color-info-text);
+
+  /* Typography Scale */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+
+  --text-xs: 11px;
+  --text-sm: 12.5px;
+  --text-base: 13.5px;
+  --text-md: 15px;
+  --text-lg: 17px;
+  --text-xl: 20px;
+  --text-2xl: 24px;
+  --text-3xl: 28px;
+
+  /* Spacing Scale */
+  --sp-05: 2px;
+  --sp-1: 4px;
+  --sp-1-5: 6px;
+  --sp-2: 8px;
+  --sp-2-5: 10px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+  --sp-10: 40px;
+
+  /* Border Radii */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+
+  /* Shadows (Subtle, Layered Stripe/Linear) */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 6px 12px -2px rgba(0, 0, 0, 0.07), 0 3px 6px -2px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 12px 24px -4px rgba(0, 0, 0, 0.09), 0 6px 12px -4px rgba(0, 0, 0, 0.04);
+  --shadow-modal: 0 20px 32px -8px rgba(0, 0, 0, 0.12), 0 8px 16px -4px rgba(0, 0, 0, 0.06);
+
+  /* Transitions */
+  --transition-fast: 120ms cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-normal: 180ms cubic-bezier(0.16, 1, 0.3, 1);
+
+  color-scheme: light;
+}
+
+/* Linear-Grade Dark Mode Theme */
+[data-theme="dark"] {
+  /* Surface & Background Colors */
+  --bg-app: #0E1015;
+  --bg-surface: #151821;
+  --bg-sidebar: #111319;
+  --bg-subtle: #1C202C;
+  --bg-muted: #242938;
+  --bg-input: #151821;
+
+  /* Text & Content Colors */
+  --tx-primary: #F3F4F6;
+  --tx-secondary: #9CA3AF;
+  --tx-muted: #6B7280;
+  --tx-inverse: #0E1015;
+
+  /* Borders & Dividers */
+  --border-subtle: #1C202C;
+  --border-default: #262B3B;
+  --border-hover: #374151;
+  --border-focus: #7373E6;
+
+  /* Primary Accent */
+  --accent-primary: #6C6CE5;
+  --accent-hover: #7E7EF0;
+  --accent-active: #5B5BD6;
+  --accent-subtle: rgba(108, 108, 229, 0.14);
+  --accent-subtle-hover: rgba(108, 108, 229, 0.22);
+  --accent-border: rgba(108, 108, 229, 0.35);
+  --accent-text: #8C8CF5;
+
+  /* Semantic Feedback Colors */
+  /* Success */
+  --color-success: #2BB673;
+  --color-success-bg: rgba(43, 182, 115, 0.12);
+  --color-success-border: rgba(43, 182, 115, 0.25);
+  --color-success-text: #5EE2A0;
+
+  /* Warning / Callback */
+  --color-warning: #E5A43B;
+  --color-warning-bg: rgba(229, 164, 59, 0.12);
+  --color-warning-border: rgba(229, 164, 59, 0.25);
+  --color-warning-text: #FAD17D;
+
+  /* Danger / Destructive */
+  --color-danger: #E65A5A;
+  --color-danger-bg: rgba(230, 90, 90, 0.12);
+  --color-danger-border: rgba(230, 90, 90, 0.25);
+  --color-danger-text: #FFA1A1;
+
+  /* Info / Blue */
+  --color-info: #3B82F6;
+  --color-info-bg: rgba(59, 130, 246, 0.12);
+  --color-info-border: rgba(59, 130, 246, 0.25);
+  --color-info-text: #93C5FD;
+
+  /* Neutral */
+  --color-neutral: #9CA3AF;
+  --color-neutral-bg: rgba(156, 163, 175, 0.1);
+  --color-neutral-border: rgba(156, 163, 175, 0.2);
+  --color-neutral-text: #D1D5DB;
+
+  /* Shadows (Dark Mode) */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.25);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.35);
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.45);
+  --shadow-md: 0 6px 12px -2px rgba(0, 0, 0, 0.55);
+  --shadow-lg: 0 12px 24px -4px rgba(0, 0, 0, 0.65);
+  --shadow-modal: 0 24px 38px -6px rgba(0, 0, 0, 0.75);
+
+  color-scheme: dark;
+}

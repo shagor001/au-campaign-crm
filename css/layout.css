@@ -1,0 +1,434 @@
+/* ==========================================================================
+   AU Campaign CRM — Application Layout (Linear Navigation + Top Bar)
+   ========================================================================== */
+
+.app {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  min-height: 100vh;
+  background-color: var(--bg-app);
+}
+
+/* Linear-Grade Navigation Sidebar */
+aside {
+  background-color: var(--bg-sidebar);
+  border-right: 1px solid var(--border-default);
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  box-sizing: border-box;
+  z-index: 40;
+  user-select: none;
+}
+
+/* Workspace / App Header */
+.brand {
+  padding: 16px 16px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border-default);
+}
+
+.brand-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-primary);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 1px 2px rgba(91, 91, 214, 0.3);
+}
+
+.brand-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.brand-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.brand-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--tx-primary);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.brand-subtitle {
+  font-size: 11px;
+  color: var(--tx-muted);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+/* Navigation List */
+nav {
+  padding: 12px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.nav-section-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--tx-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 12px 10px 4px;
+}
+
+aside button.nav-item {
+  all: unset;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  color: var(--tx-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  transition: all var(--transition-fast);
+}
+
+aside button.nav-item:hover {
+  background-color: var(--bg-subtle);
+  color: var(--tx-primary);
+}
+
+aside button.nav-item.on {
+  background-color: var(--accent-subtle);
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+aside button.nav-item.on .nav-icon {
+  color: var(--accent-primary);
+}
+
+.nav-label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nav-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--tx-secondary);
+}
+
+.nav-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: var(--radius-full);
+  background-color: var(--bg-subtle);
+  color: var(--tx-secondary);
+  border: 1px solid var(--border-default);
+}
+
+.nav-badge.urgent {
+  background-color: var(--color-warning-bg);
+  color: var(--color-warning-text);
+  border-color: var(--color-warning-border);
+}
+
+/* User & Account Footer */
+.user-box {
+  padding: 12px;
+  border-top: 1px solid var(--border-default);
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.user-profile-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px;
+}
+
+.user-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  background: var(--bg-subtle);
+  color: var(--tx-primary);
+  border: 1px solid var(--border-default);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11.5px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.user-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.user-name {
+  font-weight: 500;
+  font-size: 12.5px;
+  color: var(--tx-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+.user-role-badge {
+  display: inline-block;
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--tx-muted);
+  text-transform: capitalize;
+}
+
+.user-actions {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px;
+}
+
+.theme-toggle-btn {
+  background: transparent;
+  border: 1px solid var(--border-default);
+  color: var(--tx-secondary);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  font-size: 11.5px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  transition: all var(--transition-fast);
+}
+
+.theme-toggle-btn:hover {
+  background-color: var(--bg-subtle);
+  color: var(--tx-primary);
+  border-color: var(--border-hover);
+}
+
+aside .out {
+  padding: 4px 10px;
+  font-size: 11.5px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-default);
+  background: transparent;
+  color: var(--tx-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all var(--transition-fast);
+}
+
+aside .out:hover {
+  background-color: var(--color-danger-bg);
+  color: var(--color-danger);
+  border-color: var(--color-danger-border);
+}
+
+/* App Main Column */
+.app-main-col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Linear-Grade Top Header Bar */
+.top-bar {
+  height: 48px;
+  background-color: var(--bg-surface);
+  border-bottom: 1px solid var(--border-default);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  box-sizing: border-box;
+}
+
+.top-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--tx-secondary);
+}
+
+.breadcrumbs .bc-sep {
+  color: var(--tx-muted);
+}
+
+.breadcrumbs .bc-active {
+  font-weight: 500;
+  color: var(--tx-primary);
+}
+
+.top-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.top-search {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background-color: var(--bg-app);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--tx-muted);
+  width: 220px;
+}
+
+.top-search input {
+  all: unset;
+  width: 100%;
+  color: var(--tx-primary);
+  font-size: 12px;
+}
+
+.top-tz-badge {
+  font-size: 11.5px;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  background-color: var(--bg-app);
+  border: 1px solid var(--border-default);
+  color: var(--tx-secondary);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.top-tz-indicator {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--color-success);
+}
+
+/* Main Content Area */
+main {
+  padding: 32px 36px;
+  min-width: 0;
+  max-width: 1400px;
+  margin: 0;
+  box-sizing: border-box;
+  flex: 1;
+}
+
+/* Page Header Structure */
+.page-header {
+  margin-bottom: 24px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.page-header-title {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.page-header-title h2 {
+  margin: 0;
+}
+
+.page-header-title .page-subtitle {
+  color: var(--tx-secondary);
+  font-size: 13px;
+  margin: 0;
+}
+
+.page-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Responsive Viewport Rules */
+@media(max-width: 960px) {
+  .app {
+    grid-template-columns: 1fr;
+  }
+  aside {
+    flex-direction: row;
+    overflow-x: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--border-default);
+    padding: 8px 12px;
+    height: auto;
+    position: relative;
+  }
+  .brand {
+    border-bottom: none;
+    padding: 0 12px 0 0;
+  }
+  .nav-section-label, .user-box, .brand-subtitle {
+    display: none;
+  }
+  nav {
+    flex-direction: row;
+    padding: 0;
+  }
+  aside button.nav-item {
+    white-space: nowrap;
+    padding: 6px 10px;
+  }
+  .top-bar {
+    padding: 0 16px;
+  }
+  .top-search {
+    display: none;
+  }
+  main {
+    padding: 20px 16px;
+  }
+}

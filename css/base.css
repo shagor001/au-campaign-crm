@@ -1,0 +1,230 @@
+/* ==========================================================================
+   AU Campaign CRM — Base Typography, Resets & Core Controls
+   ========================================================================== */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--tx-primary);
+  background-color: var(--bg-app);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  background-color: var(--bg-app);
+  color: var(--tx-primary);
+}
+
+/* Typography Hierarchy */
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+  font-weight: 600;
+  color: var(--tx-primary);
+  letter-spacing: -0.015em;
+  line-height: 1.25;
+}
+
+h1 {
+  font-size: var(--text-2xl);
+}
+
+h2 {
+  font-size: var(--text-xl);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-4);
+}
+
+h3 {
+  font-size: var(--text-md);
+  margin-bottom: var(--sp-2);
+}
+
+p {
+  margin: 0 0 var(--sp-2);
+}
+
+.mu {
+  color: var(--tx-secondary);
+  font-size: var(--text-sm);
+  margin: var(--sp-05) 0 var(--sp-2);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2-5);
+  margin-bottom: var(--sp-3);
+  align-items: center;
+}
+
+/* Form Controls (Stripe-Grade Focus & Density) */
+input, select, textarea, button, .btn {
+  font-family: inherit;
+  font-size: var(--text-sm);
+  color: var(--tx-primary);
+  outline: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast);
+}
+
+input, select, textarea {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  padding: 7px 11px;
+  box-shadow: var(--shadow-xs);
+  line-height: 1.4;
+}
+
+input:hover, select:hover, textarea:hover {
+  border-color: var(--border-hover);
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px var(--accent-subtle);
+}
+
+input::placeholder, textarea::placeholder {
+  color: var(--tx-muted);
+}
+
+textarea {
+  width: 100%;
+  min-height: 84px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+/* Buttons (Linear / Stripe Action System) */
+button, .btn {
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-1-5);
+  padding: 7px 13px;
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+  border: 1px solid var(--border-default);
+  background-color: var(--bg-surface);
+  box-shadow: var(--shadow-xs);
+  user-select: none;
+  white-space: nowrap;
+}
+
+button:hover, .btn:hover {
+  background-color: var(--bg-subtle);
+  border-color: var(--border-hover);
+  color: var(--tx-primary);
+}
+
+button:active, .btn:active {
+  transform: translateY(1px);
+}
+
+/* Primary Button */
+.pri, .btn-primary {
+  background-color: var(--accent-primary) !important;
+  border-color: var(--accent-primary) !important;
+  color: var(--tx-inverse) !important;
+  box-shadow: 0 1px 2px rgba(91, 91, 214, 0.25) !important;
+  font-weight: 500 !important;
+}
+
+.pri:hover, .btn-primary:hover {
+  background-color: var(--accent-hover) !important;
+  border-color: var(--accent-hover) !important;
+}
+
+.pri:active, .btn-primary:active {
+  background-color: var(--accent-active) !important;
+  border-color: var(--accent-active) !important;
+}
+
+/* Secondary Button */
+.btn-secondary {
+  background-color: var(--bg-surface);
+  border-color: var(--border-default);
+  color: var(--tx-primary);
+}
+
+/* Danger / Destructive Button */
+.btn-danger {
+  background-color: transparent !important;
+  border-color: var(--border-default) !important;
+  color: var(--color-danger) !important;
+}
+
+.btn-danger:hover {
+  background-color: var(--color-danger-bg) !important;
+  border-color: var(--color-danger-border) !important;
+}
+
+/* Ghost / Subtle Button */
+.btn-ghost {
+  background-color: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  color: var(--tx-secondary) !important;
+}
+
+.btn-ghost:hover {
+  background-color: var(--bg-subtle) !important;
+  color: var(--tx-primary) !important;
+}
+
+/* Compact Button */
+.btn-sm {
+  padding: 4px 9px;
+  font-size: var(--text-xs);
+  border-radius: var(--radius-xs);
+  gap: var(--sp-1);
+}
+
+/* Links */
+.lk {
+  color: var(--accent-primary);
+  text-decoration: none;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.lk:hover {
+  color: var(--accent-hover);
+  text-decoration: underline;
+}
+
+.od {
+  color: var(--color-danger);
+  font-weight: 600;
+}
+
+/* Subtle SVG Utility */
+.ui-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
