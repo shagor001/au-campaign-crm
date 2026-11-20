@@ -1,5 +1,5 @@
 import { state } from '../state.js';
-import { ALL } from '../services/auth.js';
+import { ALL, getAgentName } from '../services/auth.js';
 import { today } from './dates.js';
 
 // Robust CSV Line Parser handling quotes and commas
@@ -36,7 +36,7 @@ export const exportCompaniesCSV = list => {
 
   list.forEach(item => {
     const evName = (state.D.events.find(e => e.id == item.ev) || {}).name || '';
-    const agentName = (ALL().find(a => a.e === item.by) || {}).n || item.by || '';
+    const agentName = getAgentName(item.by);
     csvRows.push([
       item.name || '',
       item.phone || '',

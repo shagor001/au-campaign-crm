@@ -2,6 +2,46 @@ import { esc } from './dom.js';
 
 export const today = () => new Date().toISOString().slice(0, 10);
 
+export const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
+
+export const formatDateRange = (startStr, endStr, fallback = '—') => {
+  if (!startStr) return fallback || '—';
+  const parsePart = s => {
+    if (!s) return null;
+    const p = s.split('T')[0].split('-');
+    if (p.length < 3) return null;
+    return { y: +p[0], m: +p[1], d: +p[2] };
+  };
+
+  const p1 = parsePart(startStr);
+  const p2 = parsePart(endStr);
+
+  if (!p1) return esc(startStr);
+  const mName1 = MONTH_NAMES[p1.m - 1] || '';
+
+  if (!p2 || (p1.y === p2.y && p1.m === p2.m && p1.d === p2.d)) {
+    return `${p1.d} ${mName1}, ${p1.y}`;
+  }
+
+  const mName2 = MONTH_NAMES[p2.m - 1] || '';
+
+  // Same year and same month: e.g. 18-19 June, 2026
+  if (p1.y === p2.y && p1.m === p2.m) {
+    return `${p1.d}-${p2.d} ${mName1}, ${p1.y}`;
+  }
+
+  // Same year, different months: e.g. 28 Feb – 2 Mar, 2026
+  if (p1.y === p2.y) {
+    return `${p1.d} ${mName1} – ${p2.d} ${mName2}, ${p1.y}`;
+  }
+
+  // Different years
+  return `${p1.d} ${mName1}, ${p1.y} – ${p2.d} ${mName2}, ${p2.y}`;
+};
+
 export const fdy = s => {
   if (!s) return '—';
   const parts = s.split('T')[0].split('-');

@@ -5,6 +5,7 @@
 import { esc } from '../utils/dom.js';
 import { fdt } from '../utils/dates.js';
 import { PILL_CLASS, IC } from '../config.js';
+import { getAgentName } from '../services/auth.js';
 
 export function getHistoryThreadHTML(company) {
   const history = company?.history || [];
@@ -12,11 +13,11 @@ export function getHistoryThreadHTML(company) {
     return `<div class="history-thread" style="text-align:center;color:var(--tx-muted);font-size:12px;padding:12px">No prior call logs recorded for this company.</div>`;
   }
 
-  const displayItems = [...history];
+  const displayItems = history.map(h => ({ ...h, by: getAgentName(h.by) }));
   if (!displayItems.length && company.notes) {
     displayItems.push({
       at: company.at || new Date().toISOString(),
-      by: company.by || 'Agent',
+      by: getAgentName(company.by),
       status: company.status || 'Updated',
       notes: company.notes
     });
@@ -32,7 +33,7 @@ export function getHistoryThreadHTML(company) {
           <div class="history-item">
             <div style="flex:1">
               <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px">
-                <span style="font-weight:600;color:var(--tx-primary)">${esc(item.by || 'Agent')}</span>
+                <span style="font-weight:600;color:var(--tx-primary)">${esc(getAgentName(item.by))}</span>
                 <span class="history-time">${item.at ? fdt(item.at) : 'Prior note'}</span>
               </div>
               <div style="margin:2px 0 4px">

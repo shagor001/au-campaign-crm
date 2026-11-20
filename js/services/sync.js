@@ -108,7 +108,8 @@ export async function boot(renderFn) {
       name: 'Melbourne Build Expo 2026',
       start: '2026-06-18',
       end: '2026-06-19',
-      where: 'Melbourne Convention Centre'
+      where: 'Melbourne Convention Centre',
+      assignedAgent: 'agent1@crm.au'
     });
     save();
   }

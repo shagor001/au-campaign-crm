@@ -1,18 +1,62 @@
-import { state, toggleTheme } from './state.js';
+import { state, toggleTheme, toggleSidebar } from './state.js';
 import { API, IC } from './config.js';
-import { render } from './router.js';
+import { render, navigate, handleHashChange, parseRouteFromHash } from './router.js';
 import { boot, save, log } from './services/sync.js';
 import { isA, who, ALL, logout } from './services/auth.js';
 import { $, closeModal } from './utils/dom.js';
 import { today, getQuickCallbackTime } from './utils/dates.js';
 import { exportCompaniesCSV, parseCSVLine } from './utils/csv.js';
 import { getFilteredCompanies, rows } from './views/companies.js';
-import { openLg, openAp, openCo, openEventModal } from './components/modals.js';
+import { openLg, openAp, openCo, openEventModal, openAddContactModal, openAddEventAttendanceModal } from './components/modals.js';
 import { openAdSetup, updateAdModalCount } from './components/autodialer-setup.js';
 import { startAdLead } from './views/autodialer.js';
 
+let lastSubmitBtn = null;
+
+function showNotification(msg) {
+  const el = document.createElement('div');
+  el.className = 'quick-notice';
+  el.style.cssText = 'position:fixed;top:20px;right:20px;z-index:999999;background:var(--tx-primary);color:var(--bg-card);padding:10px 18px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;box-shadow:0 4px 12px rgba(0,0,0,0.18);transition:opacity 0.3s ease;pointer-events:none;';
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => {
+    el.style.opacity = '0';
+    setTimeout(() => el.remove(), 300);
+  }, 2500);
+}
+
+function updateContactCardSelection(selectedName) {
+  const hiddenInput = document.getElementById('co-lg-contact-select') || document.getElementById('ad-contact-select');
+  if (hiddenInput) {
+    hiddenInput.value = selectedName || '';
+  }
+  document.querySelectorAll('.contact-card-item').forEach(card => {
+    const isMatch = (card.dataset.name || '') === (selectedName || '');
+    const radio = card.querySelector('input[type="radio"]');
+    const badge = card.querySelector('.contact-check-status');
+    if (radio) radio.checked = isMatch;
+    if (isMatch) {
+      card.classList.add('selected-contact');
+      card.style.borderColor = 'var(--accent-primary, #5B5BD6)';
+      card.style.backgroundColor = 'var(--accent-subtle, rgba(91,91,214,0.08))';
+      if (badge) {
+        badge.textContent = card.dataset.name ? '✓ Spoken With' : '✓ Selected';
+        badge.style.color = 'var(--accent-primary, #5B5BD6)';
+      }
+    } else {
+      card.classList.remove('selected-contact');
+      card.style.borderColor = 'var(--border-default)';
+      card.style.backgroundColor = 'var(--bg-app)';
+      if (badge) {
+        badge.textContent = 'Click to select';
+        badge.style.color = 'var(--tx-muted)';
+      }
+    }
+  });
+}
+
 // Central Form Submission Handler
-function onSub(f) {
+function onSub(f, e) {
   if (!f.reportValidity()) return;
   const v = Object.fromEntries(new FormData(f));
 
@@ -41,8 +85,10 @@ function onSub(f) {
     state.AD.idx = 0;
     state.AD.stats = { total: 0, disp: {} };
     closeModal();
-    state.P = 'autodial';
-    startAdLead(render);
+    navigate('autodial', { ev: eventId });
+    setTimeout(() => {
+      startAdLead(render);
+    }, 50);
     return;
   }
 
@@ -62,12 +108,23 @@ function onSub(f) {
         state.U = em;
         state.PW = v.p;
         state.ROLE = R.role;
-        state.P = 'dash';
         try {
           localStorage.setItem('aucrm_u', state.U);
           localStorage.setItem('aucrm_p', state.PW);
           localStorage.setItem('aucrm_r', state.ROLE);
         } catch (x) {}
+        const targetRoute = parseRouteFromHash();
+        if (targetRoute && targetRoute.p && targetRoute.p !== 'dash') {
+          state.P = targetRoute.p;
+          if (targetRoute.cid) state.CID = targetRoute.cid;
+          if (targetRoute.ev) {
+            if (targetRoute.p === 'autodial') state.AD.ev = targetRoute.ev;
+            else state.EV = targetRoute.ev;
+          }
+        } else {
+          state.P = 'dash';
+        }
+        navigate(state.P, { id: state.CID, ev: state.EV });
         boot(render);
       }).catch(() => {
         $('#er').textContent = 'Cannot reach the sync server.';
@@ -77,45 +134,212 @@ function onSub(f) {
 
     if (ALL().some(u => u.e === em && u.p === v.p)) {
       state.U = em;
-      state.P = 'dash';
       try {
         localStorage.setItem('aucrm_u', state.U);
       } catch (x) {}
-      render();
+      const targetRoute = parseRouteFromHash();
+      if (targetRoute && targetRoute.p && targetRoute.p !== 'dash') {
+        state.P = targetRoute.p;
+        if (targetRoute.cid) state.CID = targetRoute.cid;
+        if (targetRoute.ev) {
+          if (targetRoute.p === 'autodial') state.AD.ev = targetRoute.ev;
+          else state.EV = targetRoute.ev;
+        }
+      } else {
+        state.P = 'dash';
+      }
+      navigate(state.P, { id: state.CID, ev: state.EV });
     } else {
       $('#er').textContent = 'Wrong email or password.';
     }
   }
 
-  // Call Log Form
-  if (f.id === 'flg') {
+  // Call Log Form (Modal #flg, Embedded Lead Detail View #f-co-log, or Auto Dialer #f-ad-log)
+  if (f.id === 'flg' || f.id === 'f-co-log' || f.id === 'f-ad-log') {
     const c = state.D.companies.find(x => x.id == f.dataset.id);
     if (c) {
-      c.status = v.status;
-      if (v.phone !== undefined) c.phone = (v.phone || '').trim();
-      c.contact = v.contact;
-      c.altPhone = v.altPhone || c.altPhone || '';
-      c.email = v.email || c.email || '';
-      c.notes = v.notes;
-      c.cb = v.status === 'Callback' ? (v.cb || today()) : '';
+      c.status = v.status || (f.id === 'f-ad-log' ? ($('#ad-status-input')?.value || c.status || 'No Answer') : c.status);
+      if (v.phone !== undefined && v.phone.trim()) c.phone = v.phone.trim();
+
+      // Contact spoken to resolution
+      let contactPerson = (v.contactSpokenTo || '').trim();
+      if (v.newContactName && v.newContactName.trim()) {
+        const newCt = {
+          id: Date.now(),
+          name: v.newContactName.trim(),
+          role: (v.newContactRole || '').trim(),
+          phone: (v.newContactPhone || '').trim(),
+          email: (v.newContactEmail || '').trim()
+        };
+        c.contacts = c.contacts || [];
+        c.contacts.push(newCt);
+        contactPerson = newCt.name;
+        if (!c.contact) c.contact = newCt.name;
+      }
+      if (contactPerson) {
+        c.contact = contactPerson;
+      }
+
+      // Lead Qualification data (matching inspiration questionnaire)
+      c.qualification = c.qualification || {};
+      if (v.spaceType !== undefined) c.qualification.spaceType = v.spaceType;
+      if (v.spaceSize !== undefined) c.qualification.spaceSize = v.spaceSize.trim();
+      if (v.exhibitFrequency !== undefined) c.qualification.exhibitFrequency = v.exhibitFrequency.trim();
+      if (v.otherExpos !== undefined) c.qualification.otherExpos = v.otherExpos.trim();
+      if (v.customerRequirements !== undefined) c.qualification.customerRequirements = v.customerRequirements.trim();
+
+      if (v.spaceSize || v.spaceType) {
+        const standDesc = [v.spaceSize, v.spaceType].filter(Boolean).join(' ');
+        if (standDesc) c.stand = standDesc;
+      }
+
+      c.notes = (v.notes || '').trim();
+      c.cb = c.status === 'Callback' ? (v.cb || today()) : '';
       c.by = state.U;
       c.at = today();
+
+      // If logged specifically for an attended event
+      const activeEvId = f.dataset.ev || c.ev || (c.eventsAttended && c.eventsAttended[0]?.evId);
+      if (activeEvId && Array.isArray(c.eventsAttended)) {
+        const att = c.eventsAttended.find(x => (x.evId || x.id || x.ev) == activeEvId);
+        if (att) {
+          att.status = c.status;
+          att.cb = c.status === 'Callback' ? (v.cb || today()) : '';
+          att.notes = c.notes;
+          if (v.spaceSize || v.spaceType) {
+            att.stand = [v.spaceSize, v.spaceType].filter(Boolean).join(' ') || att.stand;
+          }
+        }
+      }
 
       c.history = c.history || [];
       c.history.unshift({
         at: new Date().toISOString(),
         by: who(),
-        status: v.status,
-        notes: v.notes
+        status: c.status,
+        notes: c.notes,
+        contactSpokenTo: contactPerson,
+        qualification: {
+          spaceType: v.spaceType,
+          spaceSize: v.spaceSize,
+          exhibitFrequency: v.exhibitFrequency,
+          otherExpos: v.otherExpos,
+          customerRequirements: v.customerRequirements
+        }
       });
 
-      log(`${who()}: ${c.name} → ${v.status}`);
+      log(`${who()}: ${c.name} → ${c.status}${contactPerson ? ' (spoke with ' + contactPerson + ')' : ''}`);
+      save();
+      closeModal();
+
+      // Auto Dialer session submission
+      if (f.id === 'f-ad-log') {
+        clearInterval(state.AD.timer);
+        state.AD.stats.total++;
+        state.AD.stats.disp[c.status] = (state.AD.stats.disp[c.status] || 0) + 1;
+        save();
+        state.AD.idx++;
+        showNotification(`Call logged for ${c.name} (${c.status})`);
+        if (c.status === 'Appointment') {
+          state.AD.state = 'paused';
+          render();
+          openAp(null, c.id);
+        } else {
+          startAdLead(render);
+        }
+        return;
+      }
+
+      const action = (e && e.submitter && e.submitter.value) || (lastSubmitBtn && lastSubmitBtn.form === f && lastSubmitBtn.value) || 'save';
+
+      if (action === 'next') {
+        const uncalled = activeEvId
+          ? state.D.companies.filter(x => x.id != c.id && (x.ev == activeEvId || (Array.isArray(x.eventsAttended) && x.eventsAttended.some(att => (att.evId || att.id || att.ev) == activeEvId))) && x.status === 'New')
+          : state.D.companies.filter(x => x.id != c.id && x.status === 'New');
+
+        if (uncalled.length > 0) {
+          const nextLead = uncalled[0];
+          showNotification(`Saved! Moving to next lead: ${nextLead.name}`);
+          navigate('co', { id: nextLead.id, ev: activeEvId });
+        } else {
+          showNotification(`Saved! All uncalled leads in this campaign are completed! 🎉`);
+          render();
+        }
+      } else {
+        showNotification(`Call log saved for ${c.name}`);
+        render();
+        if (v.status === 'Appointment') {
+          openAp(null, c.id);
+        }
+      }
+      return;
+    }
+  }
+
+  // Company Note Form (from Single Company Detail View)
+  if (f.id === 'f-co-note') {
+    const c = state.D.companies.find(x => x.id == f.dataset.id);
+    if (c && v.noteText && v.noteText.trim()) {
+      const noteStr = v.noteText.trim();
+      c.history = c.history || [];
+      c.history.unshift({
+        at: new Date().toISOString(),
+        by: who(),
+        status: c.status || 'Active',
+        notes: noteStr
+      });
+      c.notes = noteStr;
+      c.at = today();
+      c.by = state.U;
+      log(`${who()}: added note for ${c.name}`);
+      save();
+      render();
+    }
+  }
+
+  // Add Contact Form
+  if (f.id === 'f-add-contact') {
+    const c = state.D.companies.find(x => x.id == f.dataset.id);
+    if (c && v.name && v.name.trim()) {
+      c.contacts = c.contacts || [];
+      const isPri = !!v.isPrimary;
+      const roleVal = (v.role === 'Other' && v.customRole ? v.customRole : v.role || '').trim();
+      c.contacts.push({
+        id: Date.now(),
+        name: v.name.trim(),
+        role: roleVal,
+        phone: (v.phone || '').trim(),
+        email: (v.email || '').trim(),
+        linkedin: (v.linkedin || '').trim(),
+        isPrimary: isPri
+      });
+      if (isPri || !c.contact) {
+        c.contact = v.name.trim();
+        if (v.phone) c.phone = c.phone || v.phone.trim();
+        if (v.email) c.email = c.email || v.email.trim();
+      }
+      log(`${who()}: added contact ${v.name} to ${c.name}`);
       save();
       closeModal();
       render();
-      if (v.status === 'Appointment') {
-        openAp(null, c.id);
-      }
+    }
+  }
+
+  // Add Event Attendance Form
+  if (f.id === 'f-add-event-att') {
+    const c = state.D.companies.find(x => x.id == f.dataset.id);
+    if (c && v.evId) {
+      c.eventsAttended = c.eventsAttended || [];
+      c.eventsAttended.push({
+        evId: +v.evId,
+        stand: (v.stand || '').trim(),
+        status: v.status || 'New',
+        cb: ''
+      });
+      log(`${who()}: registered ${c.name} for event`);
+      save();
+      closeModal();
+      render();
     }
   }
 
@@ -228,6 +452,9 @@ function onSub(f) {
 
 // Delegated Click Handlers
 document.addEventListener('click', e => {
+  const submitBtn = e.target.closest('button[type="submit"]');
+  if (submitBtn) lastSubmitBtn = submitBtn;
+
   // Backdrop click closes modal
   if (e.target.id === 'm') {
     closeModal();
@@ -262,26 +489,25 @@ document.addEventListener('click', e => {
   const c = state.D.companies.find(x => x.id == d.id);
 
   switch (d.act) {
+    case 'toggle-sidebar':
+      toggleSidebar();
+      render();
+      break;
     case 'theme':
       toggleTheme();
       render();
       break;
     case 'go':
-      clearInterval(state.AD.timer);
-      state.P = d.p;
-      render();
-      window.scrollTo(0, 0);
+      navigate(d.p);
       break;
     case 'out':
       clearInterval(state.AD.timer);
       logout();
+      window.location.hash = '';
       render();
       break;
     case 'evco':
-      clearInterval(state.AD.timer);
-      state.EV = d.id;
-      state.P = 'evd';
-      render();
+      navigate('evd', { id: d.id });
       break;
     case 'evnew':
       openEventModal(null);
@@ -298,7 +524,20 @@ document.addEventListener('click', e => {
       }
       break;
     case 'co':
-      openCo(d.id, d.ev);
+      if (d.id) {
+        navigate('co', { id: +d.id, ev: d.ev ? +d.ev : (state.EV || null) });
+      } else {
+        openCo(null, d.ev);
+      }
+      break;
+    case 'co-edit':
+      openCo(d.id);
+      break;
+    case 'add-contact':
+      openAddContactModal(d.id);
+      break;
+    case 'add-event-att':
+      openAddEventAttendanceModal(d.id);
       break;
     case 'x':
       closeModal();
@@ -317,8 +556,80 @@ document.addEventListener('click', e => {
       }
       break;
     case 'lg':
-      openLg(d.id);
+      navigate('co', { id: d.id, ev: d.ev });
       break;
+    case 'toggle-lg-add-contact': {
+      const box = $('#lg-add-contact-box');
+      if (box) {
+        const isHidden = box.style.display === 'none';
+        box.style.display = isHidden ? 'block' : 'none';
+        if (isHidden) {
+          const inp = $('#lg-new-ct-name');
+          if (inp) inp.focus();
+        }
+      }
+      break;
+    }
+    case 'toggle-co-add-contact': {
+      const box = $('#co-add-contact-box');
+      if (box) {
+        const isHidden = box.style.display === 'none';
+        box.style.display = isHidden ? 'block' : 'none';
+        if (isHidden) {
+          const inp = $('#co-new-ct-name');
+          if (inp) inp.focus();
+        }
+      }
+      break;
+    }
+    case 'select-contact-row': {
+      const name = d.name;
+      const sel = $('#co-lg-contact-select') || $('#ad-contact-select');
+      if (sel) {
+        sel.value = name;
+      }
+      updateContactCardSelection(name);
+      break;
+    }
+    case 'dial-call': {
+      const statusEl = $('#lg-dial-status');
+      if (statusEl) {
+        statusEl.innerHTML = `<span style="color:var(--color-success);font-weight:600">● Dialing initiated…</span> Answer your Dialpad or softphone app.`;
+      }
+      break;
+    }
+    case 'co-dial-call': {
+      const statusEl = $('#co-dial-status');
+      if (statusEl) {
+        statusEl.innerHTML = `<span style="color:var(--color-success);font-weight:600">● Dialing initiated…</span> Answer your Dialpad or softphone app.`;
+      }
+      break;
+    }
+    case 'choose-disp': {
+      const targetInput = $(d.target);
+      if (targetInput) {
+        targetInput.value = d.s;
+      }
+      const grid = a.closest('.disp-grid');
+      if (grid) {
+        grid.querySelectorAll('.disp-btn').forEach(btn => btn.classList.remove('selected'));
+      }
+      a.classList.add('selected');
+
+      const isCo = (d.target === '#co-lg-status-input');
+      const isAd = (d.target === '#ad-status-input');
+      const wrap = isCo ? $('#co-lg-cb-wrap') : (isAd ? $('#ad-cb-wrap') : $('#lg-cb-wrap'));
+      const cbInp = isCo ? $('#co-lg-cb') : (isAd ? $('#ad-cb') : $('#lg-cb'));
+
+      if (wrap) {
+        const isCallback = (d.s === 'Callback');
+        wrap.style.display = isCallback ? 'block' : 'none';
+        if (isCallback && cbInp && !cbInp.value) {
+          cbInp.value = getQuickCallbackTime('tomorrow_10am');
+        }
+      }
+      break;
+    }
     case 'rres': {
       const r = state.D.reports.find(x => x.id == d.id);
       if (r) {
@@ -504,17 +815,23 @@ document.addEventListener('click', e => {
 // Form Submit Event
 document.addEventListener('submit', e => {
   e.preventDefault();
-  onSub(e.target);
+  onSub(e.target, e);
 });
 
-// Keyboard Accessibility (Esc closes modal) - No disposition hotkeys
+// Keyboard Accessibility (Esc closes modal, Ctrl+B toggles sidebar) - No disposition hotkeys
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     closeModal();
   }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
+    e.preventDefault();
+    toggleSidebar();
+    render();
+  }
   if (e.key === 'Enter' && e.target.tagName === 'INPUT' && e.target.form && e.target.type !== 'textarea') {
     e.preventDefault();
-    onSub(e.target.form);
+    // Don't call onSub here — the form's submit event handler already handles it.
+    // Calling it here caused double submissions (keydown fires onSub, then native submit fires onSub again).
   }
 });
 
@@ -533,6 +850,36 @@ document.addEventListener('change', e => {
   if (t.classList.contains('ad-st-check')) {
     const form = t.closest('form#fad');
     if (form) updateAdModalCount(+form.dataset.ev);
+  }
+
+  if (t.name === 'spoken_contact_radio') {
+    updateContactCardSelection(t.value);
+  }
+
+  if (t.id === 'f-contact-role') {
+    const wrap = $('#f-contact-custom-role-wrap');
+    if (wrap) {
+      const isOther = t.value === 'Other';
+      wrap.style.display = isOther ? 'flex' : 'none';
+      if (isOther) {
+        const inp = $('#f-contact-custom-role');
+        if (inp) inp.focus();
+      }
+    }
+  }
+
+  if (t.id === 'lg-status-select' || t.id === 'co-lg-status-select') {
+    const wrapId = t.id === 'lg-status-select' ? '#lg-cb-wrap' : '#co-lg-cb-wrap';
+    const inpId = t.id === 'lg-status-select' ? '#lg-cb' : '#co-lg-cb';
+    const wrap = $(wrapId);
+    if (wrap) {
+      const isCallback = t.value === 'Callback';
+      wrap.style.display = isCallback ? 'block' : 'none';
+      if (isCallback) {
+        const inp = $(inpId);
+        if (inp && !inp.value) inp.value = getQuickCallbackTime('tomorrow_10am');
+      }
+    }
   }
 
   if (t.id === 'fev' || t.id === 'fst') {
@@ -591,6 +938,19 @@ document.addEventListener('change', e => {
     r.readAsText(file);
   }
 });
+
+// Initialize routing from current URL hash
+if (state.U) {
+  const initialRoute = parseRouteFromHash();
+  state.P = initialRoute.p;
+  if (initialRoute.cid !== undefined) state.CID = initialRoute.cid;
+  if (initialRoute.ev !== undefined) {
+    if (initialRoute.p === 'autodial') state.AD.ev = initialRoute.ev;
+    else state.EV = initialRoute.ev;
+  }
+}
+
+window.addEventListener('hashchange', handleHashChange);
 
 // Initial Render and Sync Initialization
 render();

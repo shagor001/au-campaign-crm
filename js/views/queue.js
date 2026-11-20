@@ -5,7 +5,7 @@
 import { state } from '../state.js';
 import { ST, IC, NOTE_SNIPPETS } from '../config.js';
 import { esc } from '../utils/dom.js';
-import { isA } from '../services/auth.js';
+import { isA, getAccessibleEvents, getAccessibleEventIds } from '../services/auth.js';
 import { dueN } from '../components/toast.js';
 import { today, getAuTimezoneInfo, getQuickCallbackTime } from '../utils/dates.js';
 import { getBattlecardHTML } from '../components/battlecard.js';
@@ -13,12 +13,39 @@ import { getPacerHTML } from '../components/pacer.js';
 import { getHistoryThreadHTML } from '../components/history.js';
 
 export function queueView() {
-  const evId = state.F.ev || (state.D.events[0]?.id ?? '');
-  const pool = state.D.companies.filter(x => x.status === 'New' && (!evId || x.ev == evId));
+  const accessibleEvents = getAccessibleEvents();
+  const accessibleEventIds = accessibleEvents.map(e => e.id);
+
+  if (isA() && !accessibleEvents.length) {
+    return `
+      <div class="page-header">
+        <div class="page-header-title">
+          <h2>Call Queue</h2>
+          <p class="page-subtitle">Focused calling terminal</p>
+        </div>
+      </div>
+      <div class="dialer-card" style="text-align:center;padding:56px 24px;max-width:600px;margin:32px auto">
+        <div style="width:48px;height:48px;margin:0 auto 16px;background:var(--bg-subtle);color:var(--tx-muted);border-radius:var(--radius-full);display:flex;align-items:center;justify-content:center">
+          ${IC.shield}
+        </div>
+        <h3 style="font-size:18px;margin-bottom:8px">No Campaigns Assigned</h3>
+        <p class="mu" style="font-size:13px;line-height:1.5">
+          Your agent account (<code>${esc(state.U)}</code>) currently has no campaign events assigned to it. An administrator must assign an event to you from the administration portal.
+        </p>
+        <div style="margin-top:20px">
+          <button class="btn pri" data-act="go" data-p="events">
+            ${IC.events} View Campaigns
+          </button>
+        </div>
+      </div>`;
+  }
+
+  const evId = state.F.ev ? (accessibleEventIds.includes(+state.F.ev) ? +state.F.ev : '') : (accessibleEvents[0]?.id ?? '');
+  const pool = state.D.companies.filter(x => x.status === 'New' && (evId ? x.ev == evId : accessibleEventIds.includes(x.ev)));
   const c = pool[0];
 
-  const currentEv = state.D.events.find(x => x.id == evId);
-  const evCompanies = state.D.companies.filter(x => !evId || x.ev == evId);
+  const currentEv = accessibleEvents.find(x => x.id == evId);
+  const evCompanies = state.D.companies.filter(x => evId ? x.ev == evId : accessibleEventIds.includes(x.ev));
   const calledCount = evCompanies.filter(x => x.status !== 'New').length;
   const progressPct = evCompanies.length ? Math.round((calledCount / evCompanies.length) * 100) : 0;
 
@@ -31,14 +58,14 @@ export function queueView() {
         <p class="page-subtitle">Focused calling terminal · ${pool.length} leads pending in selected campaign</p>
       </div>
       <div class="page-actions">
-        ${currentEv ? `
+        ${isA() && currentEv ? `
           <button class="btn" data-act="ad-setup" data-id="${currentEv.id}">
             ${IC.zap} Event Auto Dialer
           </button>
         ` : ''}
         <select id="qev" style="font-size:12.5px;font-weight:500">
-          <option value="">All Campaigns (${state.D.companies.filter(x => x.status === 'New').length} pending)</option>
-          ${state.D.events.map(e => {
+          <option value="">${isA() ? 'All Assigned Campaigns' : 'All Campaigns'} (${state.D.companies.filter(x => x.status === 'New' && accessibleEventIds.includes(x.ev)).length} pending)</option>
+          ${accessibleEvents.map(e => {
             const pending = state.D.companies.filter(x => x.ev == e.id && x.status === 'New').length;
             return `<option value="${e.id}" ${evId == e.id ? 'selected' : ''}>${esc(e.name)} (${pending} left)</option>`;
           }).join('')}

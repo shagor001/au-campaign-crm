@@ -3,7 +3,7 @@
 // ==========================================================================
 
 import { state } from './state.js';
-import { isA, who } from './services/auth.js';
+import { isA, who, getAccessibleEventIds } from './services/auth.js';
 import { API, IC } from './config.js';
 import { $, esc } from './utils/dom.js';
 import { dueN, getToastHTML } from './components/toast.js';
@@ -17,6 +17,7 @@ import { followupsView } from './views/followups.js';
 import { appointmentsView } from './views/appointments.js';
 import { agentsView } from './views/agents.js';
 import { reportsView } from './views/reports.js';
+import { companyDetailView } from './views/company-detail.js';
 
 const viewMap = {
   dash: dashView,
@@ -24,6 +25,7 @@ const viewMap = {
   evd: eventDetailView,
   autodial: autodialerView,
   companies: companiesView,
+  co: companyDetailView,
   queue: queueView,
   follow: followupsView,
   appts: appointmentsView,
@@ -80,12 +82,12 @@ export function render() {
   // ------------------------------------------------------------------------
   // Navigation Hierarchy (Linear Grouping)
   // ------------------------------------------------------------------------
-  const pendingQueue = state.D.companies.filter(x => x.status === 'New').length;
+  const accessibleEventIds = isA() ? getAccessibleEventIds() : null;
+  const pendingQueue = state.D.companies.filter(x => x.status === 'New' && (!accessibleEventIds || accessibleEventIds.includes(x.ev))).length;
   const followupsDue = dueN();
 
   const operationsNav = [
     { key: 'dash', label: isA() ? 'My Dashboard' : 'Overview', icon: IC.dash },
-    { key: 'queue', label: 'Call Queue', icon: IC.queue, badge: pendingQueue ? String(pendingQueue) : null },
     { key: 'follow', label: isA() ? 'My Follow-ups' : 'Follow-ups', icon: IC.follow, badge: followupsDue ? String(followupsDue) : null, urgent: followupsDue > 0 }
   ];
 
@@ -103,8 +105,18 @@ export function render() {
   ];
 
   const allNavKeys = [...operationsNav, ...campaignNav, ...managementNav].map(n => n.key);
-  if (!allNavKeys.includes(state.P) && state.P !== 'evd' && state.P !== 'autodial') {
+  if (!allNavKeys.includes(state.P) && state.P !== 'evd' && state.P !== 'autodial' && state.P !== 'co') {
     state.P = 'dash';
+  }
+
+  // Synchronize browser URL hash with current validated state
+  const desiredHash = getHashForState();
+  if (window.location.hash !== desiredHash) {
+    try {
+      history.replaceState(null, '', desiredHash);
+    } catch (e) {
+      window.location.hash = desiredHash;
+    }
   }
 
   const activeViewFn = viewMap[state.P] || dashView;
@@ -112,10 +124,10 @@ export function render() {
   // Breadcrumbs text helper
   let breadcrumbCategory = 'Operations';
   let breadcrumbItem = 'Dashboard';
-  if (['queue', 'follow'].includes(state.P)) {
+  if (state.P === 'follow') {
     breadcrumbCategory = 'Operations';
-    breadcrumbItem = state.P === 'queue' ? 'Call Queue' : 'Scheduled Follow-ups';
-  } else if (['events', 'evd', 'autodial', 'companies', 'appts'].includes(state.P)) {
+    breadcrumbItem = 'Scheduled Follow-ups';
+  } else if (['events', 'evd', 'autodial', 'companies', 'co', 'appts'].includes(state.P)) {
     breadcrumbCategory = 'Campaigns & Leads';
     if (state.P === 'events') breadcrumbItem = 'Events & Exhibitions';
     else if (state.P === 'evd') {
@@ -125,6 +137,10 @@ export function render() {
       const evObj = state.D.events.find(x => x.id == state.AD.ev);
       breadcrumbItem = `Auto Dialer · ${evObj ? evObj.name : 'Session'}`;
     } else if (state.P === 'companies') breadcrumbItem = 'Companies Directory';
+    else if (state.P === 'co') {
+      const cObj = state.D.companies.find(x => x.id == state.CID);
+      breadcrumbItem = cObj ? cObj.name : 'Company Detail';
+    }
     else if (state.P === 'appts') breadcrumbItem = 'Sales Pipeline';
   } else if (['agents', 'report'].includes(state.P)) {
     breadcrumbCategory = 'Management';
@@ -136,12 +152,19 @@ export function render() {
   const userInitials = userName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'AU';
 
   r.innerHTML = `
-    <div class="app">
+    <div class="app ${state.sidebarCollapsed ? 'sidebar-collapsed' : ''}">
       <!-- Linear-Inspired Left Navigation Sidebar -->
-      <aside>
+      <aside class="${state.sidebarCollapsed ? 'collapsed' : ''}">
+        <!-- Floating Border Edge Collapse Button (Circular Chevron) -->
+        <button class="sidebar-edge-toggle" data-act="toggle-sidebar" aria-label="${state.sidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}" title="${state.sidebarCollapsed ? 'Expand Sidebar (Ctrl+B)' : 'Collapse Sidebar (Ctrl+B)'}">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="${state.sidebarCollapsed ? '9 18 15 12 9 6' : '15 18 9 12 15 6'}"/>
+          </svg>
+        </button>
+
         <div class="brand">
           <div class="brand-wrapper">
-            <div class="brand-icon">
+            <div class="brand-icon" ${state.sidebarCollapsed ? 'title="AU Campaign CRM"' : ''}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
               </svg>
@@ -166,7 +189,7 @@ export function render() {
 
         <div class="user-box">
           <div class="user-profile-row">
-            <div class="user-avatar">${esc(userInitials)}</div>
+            <div class="user-avatar" title="${esc(userName)}">${esc(userInitials)}</div>
             <div class="user-details">
               <div class="user-name" title="${esc(userName)}">${esc(userName)}</div>
               <span class="user-role-badge">${isA() ? 'Agent' : 'Administrator'}</span>
@@ -214,10 +237,135 @@ export function render() {
 }
 
 function renderNavItem(n) {
-  const isCurrent = state.P === n.key || (n.key === 'events' && (state.P === 'evd' || state.P === 'autodial'));
+  const isCurrent = state.P === n.key ||
+    (n.key === 'events' && (state.P === 'evd' || state.P === 'autodial')) ||
+    (n.key === 'companies' && state.P === 'co');
   return `
-    <button data-act="go" data-p="${n.key}" class="nav-item ${isCurrent ? 'on' : ''}">
+    <button data-act="go" data-p="${n.key}" class="nav-item ${isCurrent ? 'on' : ''}" title="${n.label}">
       <span class="nav-label">${n.icon} <span>${n.label}</span></span>
       ${n.badge ? `<span class="nav-badge ${n.urgent ? 'urgent' : ''}">${n.badge}</span>` : ''}
     </button>`;
+}
+
+export function getHashForState() {
+  if (state.P === 'co' && state.CID) {
+    const evQuery = state.EV ? `?ev=${state.EV}` : '';
+    return `#/companies/${state.CID}${evQuery}`;
+  }
+  if (state.P === 'evd' && state.EV) {
+    return `#/events/${state.EV}`;
+  }
+  if (state.P === 'autodial') {
+    return state.AD.ev ? `#/autodial?ev=${state.AD.ev}` : `#/autodial`;
+  }
+  return `#/${state.P || 'dash'}`;
+}
+
+export function parseRouteFromHash() {
+  const raw = (window.location.hash || '').replace(/^#\/?/, '').trim();
+  if (!raw) return { p: 'dash' };
+
+  const [pathPart, queryPart] = raw.split('?');
+  const segments = pathPart.split('/').filter(Boolean);
+  const primary = (segments[0] || '').toLowerCase();
+  const param = segments[1] || null;
+
+  const query = {};
+  if (queryPart) {
+    try {
+      new URLSearchParams(queryPart).forEach((v, k) => { query[k] = v; });
+    } catch (e) {}
+  }
+
+  if (primary === 'companies') {
+    if (param) return { p: 'co', cid: +param, ev: query.ev ? +query.ev : undefined };
+    return { p: 'companies' };
+  }
+  if (primary === 'co') {
+    const id = param || query.id;
+    return { p: 'co', cid: id ? +id : null, ev: query.ev ? +query.ev : undefined };
+  }
+  if (primary === 'queue') {
+    return { p: 'companies' };
+  }
+  if (primary === 'events') {
+    if (param) return { p: 'evd', ev: +param };
+    return { p: 'events' };
+  }
+  if (primary === 'evd') {
+    const id = param || query.id;
+    return { p: 'evd', ev: id ? +id : null };
+  }
+  if (primary === 'autodial') {
+    const evId = param || query.ev || query.id;
+    return { p: 'autodial', ev: evId ? +evId : null };
+  }
+
+  const validPages = ['dash', 'dashboard', 'follow', 'appts', 'agents', 'report'];
+  if (validPages.includes(primary)) {
+    return { p: primary === 'dashboard' ? 'dash' : primary };
+  }
+
+  return { p: 'dash' };
+}
+
+export function navigate(target, params = {}) {
+  let newHash = '';
+  if (target === 'co') {
+    const id = params.id || params.cid || state.CID;
+    state.CID = id ? +id : null;
+    if (params.ev !== undefined) state.EV = params.ev ? +params.ev : null;
+    state.P = 'co';
+    const evQuery = state.EV ? `?ev=${state.EV}` : '';
+    newHash = state.CID ? `#/companies/${state.CID}${evQuery}` : `#/companies`;
+  } else if (target === 'evd') {
+    const id = params.id || params.ev || state.EV;
+    state.EV = id ? +id : null;
+    state.P = 'evd';
+    newHash = state.EV ? `#/events/${state.EV}` : `#/events`;
+  } else if (target === 'autodial') {
+    const evId = params.ev || state.AD.ev;
+    state.AD.ev = evId ? +evId : null;
+    state.P = 'autodial';
+    newHash = state.AD.ev ? `#/autodial?ev=${state.AD.ev}` : `#/autodial`;
+  } else {
+    state.P = target || 'dash';
+    newHash = `#/${state.P}`;
+  }
+
+  if (target !== 'autodial') {
+    clearInterval(state.AD.timer);
+  }
+
+  if (window.location.hash !== newHash) {
+    window.location.hash = newHash;
+  } else {
+    render();
+  }
+  window.scrollTo(0, 0);
+}
+
+export function handleHashChange() {
+  if (!state.U) {
+    render();
+    return;
+  }
+  const route = parseRouteFromHash();
+  if (route.p !== 'autodial') {
+    clearInterval(state.AD.timer);
+  }
+
+  state.P = route.p;
+  if (route.cid !== undefined) state.CID = route.cid;
+  if (route.ev !== undefined) {
+    if (route.p === 'autodial') state.AD.ev = route.ev;
+    else state.EV = route.ev;
+  }
+
+  if (route.p === 'autodial' && state.AD.state === 'countdown' && state.AD.timer) {
+    return;
+  }
+
+  render();
+  window.scrollTo(0, 0);
 }

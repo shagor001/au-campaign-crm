@@ -4,9 +4,14 @@
 
 .app {
   display: grid;
-  grid-template-columns: 240px 1fr;
+  grid-template-columns: var(--sidebar-width, 240px) 1fr;
   min-height: 100vh;
   background-color: var(--bg-app);
+  transition: grid-template-columns var(--transition-normal);
+}
+
+.app.sidebar-collapsed {
+  grid-template-columns: var(--sidebar-collapsed-width, 64px) 1fr;
 }
 
 /* Linear-Grade Navigation Sidebar */
@@ -21,6 +26,66 @@ aside {
   box-sizing: border-box;
   z-index: 40;
   user-select: none;
+  width: var(--sidebar-width, 240px);
+  transition: width var(--transition-normal);
+  overflow: visible;
+}
+
+.app.sidebar-collapsed aside,
+aside.collapsed {
+  width: var(--sidebar-collapsed-width, 64px);
+}
+
+/* Floating Border Edge Collapse/Expand Button (matching user mockup) */
+.sidebar-edge-toggle {
+  position: absolute;
+  right: -13px;
+  top: 17px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  color: var(--tx-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 50;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.08);
+  transition: transform var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+  padding: 0;
+  outline: none;
+}
+
+[data-theme="dark"] .sidebar-edge-toggle {
+  background-color: #12151E;
+  border-color: #262B3B;
+  color: #FFFFFF;
+}
+
+.sidebar-edge-toggle:hover {
+  background-color: var(--bg-subtle);
+  border-color: var(--border-hover);
+  color: var(--accent-primary);
+  transform: scale(1.12);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+}
+
+[data-theme="dark"] .sidebar-edge-toggle:hover {
+  background-color: #1F2432;
+  border-color: var(--accent-primary);
+  color: #FFFFFF;
+}
+
+.sidebar-edge-toggle:active {
+  transform: scale(0.96);
+}
+
+.sidebar-edge-toggle svg {
+  display: block;
+  pointer-events: none;
+  stroke: currentColor;
 }
 
 /* Workspace / App Header */
@@ -30,6 +95,7 @@ aside {
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid var(--border-default);
+  gap: 8px;
 }
 
 .brand-wrapper {
@@ -84,6 +150,7 @@ nav {
   gap: 2px;
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .nav-section-label {
@@ -393,12 +460,125 @@ main {
   flex-wrap: wrap;
 }
 
+/* ==========================================================================
+   Collapsible Sidebar Rules
+   ========================================================================== */
+
+.app.sidebar-collapsed .brand {
+  padding: 14px 10px;
+  justify-content: center;
+}
+
+.app.sidebar-collapsed .brand-wrapper {
+  justify-content: center;
+  gap: 0;
+}
+
+.app.sidebar-collapsed .brand-info {
+  display: none;
+}
+
+.app.sidebar-collapsed nav {
+  padding: 12px 6px;
+}
+
+.app.sidebar-collapsed .nav-section-label {
+  height: 1px;
+  background-color: var(--border-default);
+  margin: 10px 8px;
+  padding: 0;
+  font-size: 0;
+  line-height: 0;
+  overflow: hidden;
+}
+
+.app.sidebar-collapsed aside button.nav-item {
+  justify-content: center;
+  padding: 8px 0;
+  width: 44px;
+  margin: 0 auto 3px;
+  position: relative;
+}
+
+.app.sidebar-collapsed .nav-label {
+  gap: 0;
+  justify-content: center;
+}
+
+.app.sidebar-collapsed .nav-label span {
+  display: none;
+}
+
+.app.sidebar-collapsed .nav-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.app.sidebar-collapsed .nav-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 0 4px;
+  min-width: 15px;
+  height: 15px;
+  line-height: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+}
+
+.app.sidebar-collapsed .user-box {
+  padding: 12px 8px;
+  align-items: center;
+}
+
+.app.sidebar-collapsed .user-profile-row {
+  justify-content: center;
+  padding: 0;
+  width: 100%;
+}
+
+.app.sidebar-collapsed .user-avatar {
+  width: 32px;
+  height: 32px;
+  font-size: 12px;
+}
+
+.app.sidebar-collapsed .user-details {
+  display: none;
+}
+
+.app.sidebar-collapsed .user-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  gap: 6px;
+}
+
+.app.sidebar-collapsed .theme-toggle-btn,
+.app.sidebar-collapsed aside .out {
+  width: 38px;
+  height: 32px;
+  padding: 0;
+  justify-content: center;
+}
+
+.app.sidebar-collapsed .theme-toggle-btn span,
+.app.sidebar-collapsed aside .out span {
+  display: none;
+}
+
 /* Responsive Viewport Rules */
 @media(max-width: 960px) {
-  .app {
+  .app, .app.sidebar-collapsed {
     grid-template-columns: 1fr;
   }
-  aside {
+  aside, .app.sidebar-collapsed aside {
+    width: 100%;
     flex-direction: row;
     overflow-x: auto;
     border-right: 0;
@@ -407,9 +587,13 @@ main {
     height: auto;
     position: relative;
   }
-  .brand {
+  .brand, .app.sidebar-collapsed .brand {
     border-bottom: none;
     padding: 0 12px 0 0;
+    justify-content: flex-start;
+  }
+  .sidebar-edge-toggle {
+    display: none;
   }
   .nav-section-label, .user-box, .brand-subtitle {
     display: none;
@@ -430,5 +614,11 @@ main {
   }
   main {
     padding: 20px 16px;
+  }
+}
+
+@media (max-width: 960px) {
+  .company-workspace-grid {
+    grid-template-columns: 1fr !important;
   }
 }

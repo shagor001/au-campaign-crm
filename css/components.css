@@ -484,3 +484,32 @@ tr:last-child td {
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+/* Company / Lead Detail System */
+.detail-row {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  align-items: baseline;
+  font-size: 13px;
+  gap: 12px;
+}
+
+.detail-label {
+  color: var(--tx-secondary);
+  font-weight: 500;
+  font-size: 12.5px;
+}
+
+.detail-value {
+  color: var(--tx-primary);
+  word-break: break-word;
+  font-size: 13px;
+}
+
+.event-attendance-card {
+  transition: border-color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.event-attendance-card:hover {
+  border-color: var(--border-hover);
+}

@@ -5,11 +5,17 @@
 import { state } from '../state.js';
 import { ST, PILL_CLASS, IC } from '../config.js';
 import { esc } from '../utils/dom.js';
-import { isA, ALL } from '../services/auth.js';
+import { isA, ALL, getAgentName, getAccessibleEvents, getAccessibleEventIds } from '../services/auth.js';
 
 export function getFilteredCompanies() {
+  const accessibleEventIds = isA() ? getAccessibleEventIds() : null;
   const q = state.F.q.toLowerCase().trim();
   let list = state.D.companies.filter(c => {
+    if (accessibleEventIds) {
+      const hasPrimary = accessibleEventIds.includes(c.ev);
+      const hasAttended = Array.isArray(c.eventsAttended) && c.eventsAttended.some(att => accessibleEventIds.includes(att.evId || att.ev));
+      if (!hasPrimary && !hasAttended) return false;
+    }
     const textMatch = !q || (
       (c.name || '').toLowerCase().includes(q) ||
       (c.phone || '').toLowerCase().includes(q) ||
@@ -21,7 +27,7 @@ export function getFilteredCompanies() {
       (c.contact2 || '').toLowerCase().includes(q) ||
       (c.notes || '').toLowerCase().includes(q)
     );
-    const evMatch = !state.F.ev || c.ev == state.F.ev;
+    const evMatch = !state.F.ev || c.ev == state.F.ev || (Array.isArray(c.eventsAttended) && c.eventsAttended.some(att => (att.evId || att.ev) == state.F.ev));
     const stMatch = !state.F.st || c.status === state.F.st;
     return textMatch && evMatch && stMatch;
   });
@@ -52,7 +58,7 @@ export function rows() {
   }
 
   return list.map(c => {
-    const agentName = (ALL().find(a => a.e === c.by) || {}).n || c.by || '—';
+    const agentName = c.by ? getAgentName(c.by) : '—';
     const evName = (state.D.events.find(x => x.id == c.ev) || {}).name || '—';
 
     return `
@@ -127,8 +133,8 @@ export function companiesView() {
         <input id="q" placeholder="Search by company, contact, phone, email or notes…" value="${esc(state.F.q)}" style="width:100%;box-sizing:border-box">
       </div>
       <select id="fev" style="min-width:180px">
-        <option value="">All Campaigns / Events</option>
-        ${state.D.events.map(e => `<option value="${e.id}" ${state.F.ev == e.id ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}
+        <option value="">${isA() ? 'All Assigned Campaigns' : 'All Campaigns / Events'}</option>
+        ${getAccessibleEvents().map(e => `<option value="${e.id}" ${state.F.ev == e.id ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}
       </select>
       <select id="fst" style="min-width:150px">
         <option value="">All Statuses</option>

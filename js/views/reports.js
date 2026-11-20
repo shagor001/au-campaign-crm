@@ -3,7 +3,7 @@
 // ==========================================================================
 
 import { state } from '../state.js';
-import { isA, ALL } from '../services/auth.js';
+import { isA, ALL, getAgentName } from '../services/auth.js';
 import { esc } from '../utils/dom.js';
 import { fdy } from '../utils/dates.js';
 import { IC } from '../config.js';
@@ -70,7 +70,7 @@ export function reportsView() {
               <td>
                 <span class="mu tabular" style="font-size:12px">${fdy(r.at)}</span>
               </td>
-              <td><b>${esc((ALL().find(a => a.e === r.by) || {}).n || r.by)}</b></td>
+              <td><b>${esc(getAgentName(r.by))}</b></td>
               <td><span class="pill pill-new">${esc(r.pg)}</span></td>
               <td style="white-space:normal;min-width:260px;font-size:12.5px">${esc(r.t)}</td>
               <td>

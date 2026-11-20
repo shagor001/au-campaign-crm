@@ -5,7 +5,7 @@
 import { state } from '../state.js';
 import { ST, PILL_CLASS, IC } from '../config.js';
 import { esc } from '../utils/dom.js';
-import { isA } from '../services/auth.js';
+import { isA, getAccessibleEvents } from '../services/auth.js';
 import { dueN } from '../components/toast.js';
 import { today } from '../utils/dates.js';
 
@@ -24,8 +24,8 @@ export function agentDashView() {
         <p class="page-subtitle">Personal outreach metrics, active campaign pacing and scheduled callbacks.</p>
       </div>
       <div class="page-actions">
-        <button class="btn pri" data-act="go" data-p="queue">
-          ${IC.phone} Start Calling Queue
+        <button class="btn pri" data-act="go" data-p="events">
+          ${IC.events} View Assigned Campaigns
         </button>
       </div>
     </div>
@@ -76,7 +76,7 @@ export function agentDashView() {
             </tr>
           </thead>
           <tbody>
-            ${state.D.events.map(e => {
+            ${getAccessibleEvents().length ? getAccessibleEvents().map(e => {
               const c = state.D.companies.filter(x => x.ev == e.id);
               const d = c.filter(x => x.status !== 'New').length;
               const p = c.length ? Math.round((d / c.length) * 100) : 0;
@@ -96,7 +96,13 @@ export function agentDashView() {
                     <button class="btn btn-sm" data-act="evco" data-id="${e.id}">Open Event</button>
                   </td>
                 </tr>`;
-            }).join('')}
+            }).join('') : `
+              <tr>
+                <td colspan="5" class="empty-box">
+                  <p class="mu" style="margin:0">No campaigns assigned to you yet.</p>
+                </td>
+              </tr>
+            `}
           </tbody>
         </table>
       </div>
@@ -124,8 +130,8 @@ export function dashView() {
       </div>
       <div class="page-actions">
         <button class="btn" data-act="go" data-p="companies">View Leads</button>
-        <button class="btn pri" data-act="go" data-p="queue">
-          ${IC.phone} Open Call Queue
+        <button class="btn pri" data-act="go" data-p="events">
+          ${IC.events} View Campaigns
         </button>
       </div>
     </div>

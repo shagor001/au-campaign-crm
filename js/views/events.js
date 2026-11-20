@@ -3,19 +3,19 @@
 // ==========================================================================
 
 import { state } from '../state.js';
-import { isA } from '../services/auth.js';
+import { isA, isEventAccessible, getAccessibleEvents } from '../services/auth.js';
 import { esc } from '../utils/dom.js';
-import { fdy } from '../utils/dates.js';
+import { fdy, formatDateRange } from '../utils/dates.js';
 import { IC, PILL_CLASS } from '../config.js';
 
 export function eventsView() {
-  const ev = [...state.D.events].sort((a, b) => (a.start || '9').localeCompare(b.start || '9'));
+  const ev = getAccessibleEvents().sort((a, b) => (a.start || '9').localeCompare(b.start || '9'));
 
   return `
     <div class="page-header">
       <div class="page-header-title">
-        <h2>Campaigns & Exhibitions</h2>
-        <p class="page-subtitle">${ev.length} active campaigns · Track progress and launch targeted auto dialers</p>
+        <h2>${isA() ? 'My Assigned Campaigns' : 'Campaigns & Exhibitions'}</h2>
+        <p class="page-subtitle">${ev.length} ${isA() ? 'assigned' : 'active'} campaigns · ${isA() ? 'Only campaigns assigned to you by administrators are shown' : 'Track progress, manage agent assignments and launch targeted auto dialers'}</p>
       </div>
       <div class="page-actions">
         ${isA() ? '' : `
@@ -35,8 +35,9 @@ export function eventsView() {
             <th>Event Schedule</th>
             <th>Venue / City</th>
             <th>Total Leads</th>
-            <th style="min-width:200px">Calling Progress</th>
-            <th>Operations</th>
+            <th style="min-width:180px">Calling Progress</th>
+            <th>Assigned Agent</th>
+            ${!isA() ? '<th>Operations</th>' : ''}
           </tr>
         </thead>
         <tbody>
@@ -44,9 +45,13 @@ export function eventsView() {
             const c = state.D.companies.filter(x => x.ev == e.id);
             const dn = c.filter(x => x.status !== 'New').length;
             const p = c.length ? Math.round((dn / c.length) * 100) : 0;
-            const dateStr = e.start ? fdy(e.start) + (e.end ? ' – ' + fdy(e.end) : '') : esc(e.when || '—');
+            const dateStr = formatDateRange(e.start, e.end, e.when || '—');
+            const agentObj = state.D.agents.find(a => (a.e || '').toLowerCase() === (e.assignedAgent || '').toLowerCase());
+            const agentName = agentObj ? agentObj.n : (e.assignedAgent || '');
+            const isMe = isA() && (e.assignedAgent || '').toLowerCase() === (state.U || '').toLowerCase();
+
             return `
-              <tr>
+              <tr data-act="evco" data-id="${e.id}" style="cursor:pointer" title="Click to view campaign leads">
                 <td>
                   <div style="font-weight:600">
                     <a class="lk" data-act="evco" data-id="${e.id}">${esc(e.name)}</a>
@@ -69,29 +74,38 @@ export function eventsView() {
                   <div class="pg"><i class="bl" data-w="${p}"></i></div>
                 </td>
                 <td>
-                  <div class="row" style="margin:0;gap:6px">
-                    <button class="btn btn-sm pri" data-act="ad-setup" data-id="${e.id}" title="Launch Auto Dialer">
-                      ${IC.zap} Auto Dial
-                    </button>
-                    <button class="btn btn-sm" data-act="evco" data-id="${e.id}">
-                      Roster View
-                    </button>
-                    ${isA() ? '' : `
-                      <button class="btn btn-sm" data-act="evedit" data-id="${e.id}" title="Edit Event Details">
-                        ${IC.edit}
+                  ${agentName ? `
+                    <span style="font-size:12.5px;color:var(--tx-primary)">${esc(agentName)}</span>
+                  ` : `
+                    <span class="mu" style="font-size:12.5px">—</span>
+                  `}
+                </td>
+                ${!isA() ? `
+                  <td>
+                    <div class="row" style="margin:0;gap:6px">
+                      <button class="btn btn-sm" data-act="evedit" data-id="${e.id}" title="Edit Campaign & Agent Assignment">
+                        ${IC.edit} Edit
                       </button>
                       <button class="btn btn-sm btn-danger" data-act="evdel" data-id="${e.id}" title="Delete Campaign">
-                        ${IC.trash}
+                        ${IC.trash} Delete
                       </button>
-                    `}
-                  </div>
-                </td>
+                    </div>
+                  </td>
+                ` : ''}
               </tr>`;
           }).join('') : `
             <tr>
-              <td colspan="6" class="empty-box">
-                <b>No campaigns registered yet</b>
-                <p>Add a new campaign to begin organizing leads and outreach.</p>
+              <td colspan="${isA() ? 6 : 7}" class="empty-box">
+                ${isA() ? `
+                  <div style="width:40px;height:40px;margin:0 auto 12px;background:var(--bg-subtle);color:var(--tx-muted);border-radius:var(--radius-full);display:flex;align-items:center;justify-content:center">
+                    ${IC.shield}
+                  </div>
+                  <b>No Campaigns Assigned Yet</b>
+                  <p>An administrator has not assigned your agent account (<code>${esc(state.U)}</code>) to any active campaign events.</p>
+                ` : `
+                  <b>No campaigns registered yet</b>
+                  <p>Add a new campaign to begin organizing leads and outreach.</p>
+                `}
               </td>
             </tr>
           `}
@@ -104,10 +118,34 @@ export function eventDetailView() {
   const e = state.D.events.find(x => x.id == state.EV);
   if (!e) return `<h2>Event Not Found</h2><button class="btn" data-act="go" data-p="events">${IC.arrowLeft} Back to Events</button>`;
 
+  // Access Guard: Agents can only view events assigned to them
+  if (isA() && !isEventAccessible(e)) {
+    return `
+      <div style="margin-bottom:12px">
+        <a class="lk" data-act="go" data-p="events" style="display:inline-flex;align-items:center;gap:4px;font-size:12.5px">
+          ${IC.arrowLeft} Back to My Campaigns
+        </a>
+      </div>
+      <div class="card" style="text-align:center;padding:56px 24px;max-width:620px;margin:32px auto">
+        <div style="width:48px;height:48px;margin:0 auto 16px;background:var(--color-danger-bg);color:var(--color-danger);border-radius:var(--radius-full);display:flex;align-items:center;justify-content:center">
+          ${IC.shield}
+        </div>
+        <h3 style="font-size:18px;margin-bottom:8px">Campaign Access Restricted</h3>
+        <p class="mu" style="font-size:13px;line-height:1.5">
+          You do not have permission to view <b>${esc(e.name)}</b>. This campaign has not been assigned to your agent account (<code>${esc(state.U)}</code>) from the administration side.
+        </p>
+        <div style="margin-top:20px">
+          <button class="btn pri" data-act="go" data-p="events">
+            ${IC.arrowLeft} Return to My Assigned Campaigns
+          </button>
+        </div>
+      </div>`;
+  }
+
   const c = state.D.companies.filter(x => x.ev == e.id).sort((a, b) => a.name.localeCompare(b.name));
   const dn = c.filter(x => x.status !== 'New').length;
   const p = c.length ? Math.round((dn / c.length) * 100) : 0;
-  const dateStr = e.start ? fdy(e.start) + (e.end ? ' – ' + fdy(e.end) : '') : esc(e.when || '');
+  const dateStr = formatDateRange(e.start, e.end, e.when || '');
 
   return `
     <div style="margin-bottom:12px">
@@ -118,15 +156,20 @@ export function eventDetailView() {
 
     <div class="page-header">
       <div class="page-header-title">
-        <h2>${esc(e.name)}</h2>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <h2 style="margin:0">${esc(e.name)}</h2>
+          <button class="btn btn-sm pri" data-act="ad-setup" data-id="${e.id}" style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;font-size:12.5px;font-weight:600">
+            ${IC.zap} Auto Dial
+          </button>
+        </div>
         <p class="page-subtitle">${dateStr}${e.where ? ' · ' + esc(e.where) : ''} · ${c.length} exhibitors registered</p>
       </div>
       <div class="page-actions">
-        <button class="btn pri" data-act="ad-setup" data-id="${e.id}">
-          ${IC.zap} Start Auto Dialer
-        </button>
         ${isA() ? '' : `
-          <button class="btn" data-act="co" data-id="" data-ev="${e.id}">
+          <button class="btn" data-act="evedit" data-id="${e.id}">
+            ${IC.edit} Edit Campaign
+          </button>
+          <button class="btn pri" data-act="co" data-id="" data-ev="${e.id}">
             ${IC.plus} Add Company
           </button>
         `}
@@ -157,7 +200,7 @@ export function eventDetailView() {
         </thead>
         <tbody>
           ${c.length ? c.map(x => `
-            <tr data-act="co" data-id="${x.id}" title="${isA() ? 'Click to update contacts and phone' : 'Click to view/edit lead'}">
+            <tr data-act="co" data-id="${x.id}" data-ev="${e.id}" title="${isA() ? 'Click to update contacts and phone' : 'Click to view/edit lead'}">
               <td>
                 <span class="mu" style="font-size:12px">${esc(x.stand || '—')}</span>
               </td>
@@ -175,10 +218,10 @@ export function eventDetailView() {
               </td>
               <td>
                 <div class="row" style="margin:0;gap:6px">
-                  <button class="btn btn-sm pri" data-act="lg" data-id="${x.id}" onclick="event.stopPropagation()">
+                  <button class="btn btn-sm pri" data-act="lg" data-id="${x.id}" data-ev="${e.id}">
                     Log Call
                   </button>
-                  <button class="btn btn-sm" data-act="co" data-id="${x.id}" onclick="event.stopPropagation()">
+                  <button class="btn btn-sm" data-act="co" data-id="${x.id}" data-ev="${e.id}">
                     ${isA() ? 'Contacts' : 'Edit'}
                   </button>
                 </div>

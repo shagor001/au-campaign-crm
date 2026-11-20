@@ -20,8 +20,8 @@ export function followupsView() {
         <p class="page-subtitle">${l.length} scheduled callbacks · Prioritized chronologically by callback time</p>
       </div>
       <div class="page-actions">
-        <button class="btn pri" data-act="go" data-p="queue">
-          ${IC.phone} Open Call Queue
+        <button class="btn pri" data-act="go" data-p="events">
+          ${IC.events} View Campaigns
         </button>
       </div>
     </div>
@@ -77,7 +77,7 @@ export function followupsView() {
                   ${esc(c.notes || '—')}
                 </td>
                 <td>
-                  <button class="btn btn-sm pri" data-act="lg" data-id="${c.id}" onclick="event.stopPropagation()">
+                  <button class="btn btn-sm pri" data-act="lg" data-id="${c.id}">
                     ${IC.phone} Log Call
                   </button>
                 </td>

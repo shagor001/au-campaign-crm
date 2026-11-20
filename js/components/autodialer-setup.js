@@ -5,6 +5,7 @@
 import { state } from '../state.js';
 import { ST, PILL_CLASS, IC } from '../config.js';
 import { $, esc } from '../utils/dom.js';
+import { isA, isEventAccessible } from '../services/auth.js';
 
 export function updateAdModalCount(eventId) {
   const checks = Array.from(document.querySelectorAll('.ad-st-check:checked')).map(c => c.value);
@@ -18,6 +19,10 @@ export function updateAdModalCount(eventId) {
 export function openAdSetup(eventId) {
   const e = state.D.events.find(x => x.id == eventId);
   if (!e) return;
+  if (!isEventAccessible(e)) {
+    alert('Access restricted: this campaign is not assigned to your account.');
+    return;
+  }
   const currentStatuses = state.AD.ev == eventId ? state.AD.statuses : ['New', 'No Answer'];
   const companies = state.D.companies.filter(x => x.ev == eventId);
 
