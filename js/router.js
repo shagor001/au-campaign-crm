@@ -218,11 +218,6 @@ export function render() {
               <span class="bc-active">${esc(breadcrumbItem)}</span>
             </div>
           </div>
-          <div class="top-bar-right" style="display:flex;align-items:center;gap:10px">
-            <button class="btn btn-sm" data-act="ai-settings" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:6px 12px;background:var(--bg-surface);border:1px solid var(--border-default)" title="Configure Google Gemini Free AI Call Summaries">
-              ${IC.sparkles} <span>AI Settings</span>
-            </button>
-          </div>
         </header>
 
         <main>
