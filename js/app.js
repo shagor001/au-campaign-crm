@@ -7,9 +7,10 @@ import { $, closeModal } from './utils/dom.js';
 import { today, getQuickCallbackTime } from './utils/dates.js';
 import { exportCompaniesCSV, parseCSVLine } from './utils/csv.js';
 import { getFilteredCompanies, rows } from './views/companies.js';
-import { openLg, openAp, openCo, openEventModal, openAddContactModal, openAddEventAttendanceModal } from './components/modals.js';
+import { openLg, openAp, openCo, openEventModal, openAddContactModal, openAddEventAttendanceModal, openAiSettingsModal } from './components/modals.js';
 import { openAdSetup, updateAdModalCount } from './components/autodialer-setup.js';
 import { startAdLead } from './views/autodialer.js';
+import { getGeminiApiKey, setGeminiApiKey, isAiConfigured, generateCallSummary } from './services/ai.js';
 
 let lastSubmitBtn = null;
 
@@ -194,6 +195,7 @@ function onSub(f, e) {
       }
 
       c.notes = (v.notes || '').trim();
+      c.aiSummary = (v.aiSummary || '').trim();
       c.cb = c.status === 'Callback' ? (v.cb || today()) : '';
       c.by = state.U;
       c.at = today();
@@ -219,6 +221,7 @@ function onSub(f, e) {
         status: c.status,
         notes: c.notes,
         contactSpokenTo: contactPerson,
+        aiSummary: c.aiSummary,
         qualification: {
           spaceType: v.spaceType,
           spaceSize: v.spaceSize,
@@ -447,6 +450,16 @@ function onSub(f, e) {
     save();
     closeModal();
     render();
+  }
+
+  // AI Settings Form
+  if (f.id === 'f-ai-settings') {
+    const key = (v.apiKey || '').trim();
+    setGeminiApiKey(key);
+    showNotification(key ? 'Google Gemini API Key saved!' : 'AI API Key removed.');
+    closeModal();
+    render();
+    return;
   }
 }
 
@@ -818,6 +831,149 @@ document.addEventListener('click', e => {
           input.focus();
         }
       }
+      break;
+    }
+    case 'ai-settings': {
+      openAiSettingsModal();
+      break;
+    }
+    case 'toggle-key-visibility': {
+      const inp = $('#gemini-api-key-input');
+      if (inp) {
+        const isPw = inp.type === 'password';
+        inp.type = isPw ? 'text' : 'password';
+        a.textContent = isPw ? 'Hide' : 'Show';
+      }
+      break;
+    }
+    case 'clear-ai-key': {
+      setGeminiApiKey('');
+      closeModal();
+      showNotification('Google Gemini API Key removed.');
+      render();
+      break;
+    }
+    case 'clear-ai-summary': {
+      const box = a.closest('.ai-preview-box') || $(d.target);
+      if (box) {
+        box.style.display = 'none';
+        const inp = box.querySelector('input[name="aiSummary"]');
+        if (inp) inp.value = '';
+      }
+      break;
+    }
+    case 'test-ai-key': {
+      const inp = $('#gemini-api-key-input');
+      const resBox = $('#ai-test-result');
+      if (!inp || !resBox) break;
+      const testKey = inp.value.trim();
+      if (!testKey) {
+        resBox.style.display = 'block';
+        resBox.style.background = 'rgba(239,68,68,0.1)';
+        resBox.style.color = '#ef4444';
+        resBox.textContent = 'Please enter an API key first.';
+        break;
+      }
+
+      const btn = a;
+      const origText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Testing...';
+      resBox.style.display = 'block';
+      resBox.style.background = 'var(--bg-app)';
+      resBox.style.color = 'var(--tx-secondary)';
+      resBox.textContent = 'Connecting to Google Gemini API...';
+
+      generateCallSummary({ companyName: 'Melbourne Exhibitor', notes: 'Client interested in 3x3 booth.' }, testKey).then(r => {
+        btn.disabled = false;
+        btn.textContent = origText;
+        if (r.ok) {
+          resBox.style.background = 'rgba(16,185,129,0.1)';
+          resBox.style.color = '#10b981';
+          resBox.innerHTML = `<b>✓ Connection Successful!</b><br>Gemini 1.5 Flash Free Tier is active and working.`;
+        } else {
+          resBox.style.background = 'rgba(239,68,68,0.1)';
+          resBox.style.color = '#ef4444';
+          resBox.innerHTML = `<b>✗ Connection Failed:</b><br>${esc(r.message || 'Invalid key')}`;
+        }
+      }).catch(err => {
+        btn.disabled = false;
+        btn.textContent = origText;
+        resBox.style.background = 'rgba(239,68,68,0.1)';
+        resBox.style.color = '#ef4444';
+        resBox.textContent = 'Network error: ' + (err.message || 'Failed to connect');
+      });
+      break;
+    }
+    case 'gen-ai-summary': {
+      if (!isAiConfigured()) {
+        showNotification('Please configure your Google Gemini API key first.');
+        openAiSettingsModal();
+        break;
+      }
+
+      const formSel = d.form || '#f-co-log';
+      const form = $(formSel);
+      if (!form) break;
+
+      const isAd = formSel.includes('ad');
+      const companyId = form.dataset.id;
+      const co = state.D.companies.find(x => x.id == companyId) || {};
+
+      const notesEl = isAd ? $('#ad-notes') : $('#co-lg-notes');
+      const reqEl = isAd ? ($('#ad-q-customerRequirements') || $('#ad-cust-req')) : ($('#co-lg-cust-req') || form.querySelector('[name="customerRequirements"]'));
+      const statusInp = isAd ? $('#ad-status-input') : $('#co-lg-status-input');
+      const spaceTypeInp = form.querySelector('[name="spaceType"]');
+      const spaceSizeInp = form.querySelector('[name="spaceSize"]');
+      const contactSelect = isAd ? $('#ad-contact-select') : $('#co-lg-contact-select');
+
+      const callData = {
+        companyName: co.name || 'Client',
+        contactName: (contactSelect ? contactSelect.value : '') || co.contact || '',
+        status: (statusInp ? statusInp.value : '') || co.status || 'Active',
+        notes: (notesEl ? notesEl.value : '').trim(),
+        customerRequirements: (reqEl ? reqEl.value : '').trim(),
+        spaceType: spaceTypeInp ? spaceTypeInp.value : '',
+        spaceSize: spaceSizeInp ? spaceSizeInp.value : ''
+      };
+
+      if (!callData.notes && !callData.customerRequirements) {
+        showNotification('Please enter call notes or customer requirements first.');
+        if (notesEl) notesEl.focus();
+        break;
+      }
+
+      const btn = a;
+      const origHtml = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = `<span style="display:inline-block;animation:spin 0.8s linear infinite;margin-right:4px">⏳</span> Summarizing...`;
+
+      generateCallSummary(callData).then(res => {
+        btn.disabled = false;
+        btn.innerHTML = origHtml;
+
+        if (!res.ok) {
+          showNotification(res.message || 'AI summarization failed.');
+          if (res.error === 'INVALID_KEY' || res.error === 'NO_KEY') {
+            openAiSettingsModal();
+          }
+          return;
+        }
+
+        const previewBox = isAd ? $('#ad-ai-preview') : $('#co-ai-preview');
+        const summaryInp = isAd ? $('#ad-ai-summary-input') : $('#co-ai-summary-input');
+        if (summaryInp) summaryInp.value = res.summary;
+        if (previewBox) {
+          const txt = previewBox.querySelector('.ai-summary-text');
+          if (txt) txt.textContent = res.summary;
+          previewBox.style.display = 'block';
+        }
+        showNotification('✨ AI Call Takeaways generated!');
+      }).catch(err => {
+        btn.disabled = false;
+        btn.innerHTML = origHtml;
+        showNotification('Error generating AI summary: ' + (err.message || 'Unknown error'));
+      });
       break;
     }
     case 'toggle-battlecard': {

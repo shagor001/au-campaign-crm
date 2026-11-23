@@ -513,3 +513,17 @@ tr:last-child td {
 .event-attendance-card:hover {
   border-color: var(--border-hover);
 }
+
+/* AI Call Summary Components */
+.ai-preview-box {
+  background: var(--bg-app);
+  border: 1px solid var(--border-default);
+  border-left: 3px solid #8b5cf6;
+  border-radius: var(--radius-xs);
+  transition: all var(--transition-fast);
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

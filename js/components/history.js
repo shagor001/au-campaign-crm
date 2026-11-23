@@ -39,6 +39,14 @@ export function getHistoryThreadHTML(company) {
               <div style="margin:2px 0 4px">
                 <span class="pill ${PILL_CLASS[item.status] || 'pill-new'}" style="padding:1px 6px;font-size:10.5px">${esc(item.status || 'Note')}</span>
               </div>
+              ${item.aiSummary ? `
+                <div style="font-size:12px;background:rgba(139, 92, 246, 0.08);border-left:3px solid #8b5cf6;padding:8px 12px;margin:6px 0;border-radius:2px">
+                  <span style="font-size:10.5px;text-transform:uppercase;font-weight:600;color:#a78bfa;display:flex;align-items:center;gap:4px;margin-bottom:3px">
+                    ${IC.sparkles} AI Call Takeaways:
+                  </span>
+                  <div style="color:var(--tx-primary);line-height:1.45;white-space:pre-line">${esc(item.aiSummary)}</div>
+                </div>
+              ` : ''}
               <div style="color:var(--tx-secondary);font-size:12.5px;line-height:1.4">${esc(item.notes || '(No notes recorded)')}</div>
             </div>
           </div>

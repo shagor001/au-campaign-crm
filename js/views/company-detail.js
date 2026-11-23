@@ -144,7 +144,8 @@ export function companyDetailView() {
       notes: c.notes,
       status: c.status,
       contactSpokenTo: c.contact,
-      qualification: c.qualification
+      qualification: c.qualification,
+      aiSummary: c.aiSummary
     });
   }
 
@@ -250,7 +251,7 @@ export function companyDetailView() {
                 <label style="font-size:12.5px;font-weight:500;text-transform:none;letter-spacing:normal;color:var(--tx-primary);margin-bottom:4px">
                   Customer Requirements / Notes
                 </label>
-                <textarea name="customerRequirements" rows="2" placeholder="e.g. Custom stand build, display lighting, AV equipment, budget, specific customer requests..." style="width:100%;box-sizing:border-box;font-size:13px">${esc(q.customerRequirements || q.requirements || '')}</textarea>
+                <textarea name="customerRequirements" id="co-lg-cust-req" rows="2" placeholder="e.g. Custom stand build, display lighting, AV equipment, budget, specific customer requests..." style="width:100%;box-sizing:border-box;font-size:13px">${esc(q.customerRequirements || q.requirements || '')}</textarea>
               </div>
             </div>
 
@@ -500,15 +501,34 @@ export function companyDetailView() {
 
           <!-- Notes & Snippets -->
           <div class="form-field" style="margin-bottom:0">
-            <label style="font-size:12.5px;font-weight:500;text-transform:none;letter-spacing:normal;color:var(--tx-primary);margin-bottom:6px">
-              Notes
-            </label>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:8px">
+              <label style="font-size:12.5px;font-weight:500;text-transform:none;letter-spacing:normal;color:var(--tx-primary);margin-bottom:0">
+                Notes
+              </label>
+              <button type="button" class="btn btn-sm" id="btn-co-gen-ai" data-act="gen-ai-summary" data-form="#f-co-log" style="display:inline-flex;align-items:center;gap:5px;font-size:11.5px;padding:4px 10px;background:var(--accent-subtle);color:var(--accent-text);border-color:var(--accent-border)" title="Generate 2-3 bullet point summary using Google Gemini free tier">
+                ${IC.sparkles} <span>Generate AI Summary</span>
+              </button>
+            </div>
             <div class="snippet-grid" style="margin-bottom:8px">
               ${NOTE_SNIPPETS.slice(0, 5).map(snip => `
                 <button type="button" class="snippet-chip" data-act="add-snippet" data-target="#co-lg-notes" data-val="${esc(snip)}">+ ${esc(snip)}</button>
               `).join('')}
             </div>
             <textarea id="co-lg-notes" name="notes" rows="3" placeholder="Write interaction details, who you spoke with, what they need, anything to remember..." style="width:100%;box-sizing:border-box">${esc(c.notes || '')}</textarea>
+
+            <!-- Generated AI Summary Preview & Hidden Input -->
+            <div id="co-ai-preview" class="ai-preview-box" style="display:${c.aiSummary ? 'block' : 'none'};margin-top:10px;padding:10px 14px;background:var(--bg-app);border:1px solid var(--border-default);border-left:3px solid #8b5cf6;border-radius:var(--radius-xs)">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+                <span style="font-size:11px;font-weight:600;color:#a78bfa;display:inline-flex;align-items:center;gap:5px">
+                  ${IC.sparkles} AI CALL TAKEAWAYS
+                </span>
+                <button type="button" class="btn btn-sm" data-act="clear-ai-summary" data-target="#co-ai-preview" style="padding:1px 6px;font-size:10.5px">Remove</button>
+              </div>
+              <div class="ai-summary-text" style="font-size:12px;color:var(--tx-primary);line-height:1.45;white-space:pre-line">
+                ${esc(c.aiSummary || '')}
+              </div>
+              <input type="hidden" name="aiSummary" id="co-ai-summary-input" value="${esc(c.aiSummary || '')}">
+            </div>
           </div>
         </div>
 
@@ -545,6 +565,14 @@ export function companyDetailView() {
                   <div style="font-size:12px;background:var(--accent-subtle);border-left:3px solid var(--accent-primary, #5B5BD6);padding:6px 10px;margin:6px 0;border-radius:2px">
                     <span class="mu" style="font-size:10.5px;text-transform:uppercase;font-weight:600;display:block;margin-bottom:2px">Customer Requirements:</span>
                     <span style="color:var(--tx-primary)">${esc(n.qualification.customerRequirements)}</span>
+                  </div>
+                ` : ''}
+                ${n.aiSummary ? `
+                  <div style="font-size:12px;background:rgba(139, 92, 246, 0.08);border-left:3px solid #8b5cf6;padding:8px 12px;margin:6px 0;border-radius:2px">
+                    <span style="font-size:10.5px;text-transform:uppercase;font-weight:600;color:#a78bfa;display:flex;align-items:center;gap:4px;margin-bottom:3px">
+                      ${IC.sparkles} AI Call Takeaways:
+                    </span>
+                    <div style="color:var(--tx-primary);line-height:1.45;white-space:pre-line">${esc(n.aiSummary)}</div>
                   </div>
                 ` : ''}
                 <div style="font-size:12.5px;color:var(--tx-secondary);line-height:1.4">

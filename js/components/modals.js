@@ -9,6 +9,7 @@ import { isA, isEventAccessible, getAccessibleEvents } from '../services/auth.js
 import { getQuickCallbackTime } from '../utils/dates.js';
 import { getCompanyContacts } from '../views/company-detail.js';
 import { navigate } from '../router.js';
+import { getGeminiApiKey, setGeminiApiKey, isAiConfigured } from '../services/ai.js';
 
 export function openLg(id, evId) {
   navigate('co', { id, ev: evId });
@@ -474,6 +475,70 @@ export function openAddEventAttendanceModal(companyId) {
         <div class="row" style="justify-content:flex-end;margin-top:16px;gap:8px">
           <button type="button" class="btn" data-act="x">Cancel</button>
           <button class="btn pri">Register Attendance</button>
+        </div>
+      </form>
+    </div>`;
+  document.body.append(m);
+}
+
+export function openAiSettingsModal() {
+  const currentKey = getGeminiApiKey();
+  const isSet = !!currentKey;
+
+  const m = document.createElement('div');
+  m.id = 'm';
+  m.innerHTML = `
+    <div class="mb" style="max-width:540px">
+      <div class="mb-header">
+        <div>
+          <h3 style="display:flex;align-items:center;gap:8px">
+            <span style="color:#a78bfa">${IC.sparkles}</span> Google Gemini AI Settings
+          </h3>
+          <p class="mu" style="margin:2px 0 0;font-size:12px">Free-tier AI call summarization powered by Google Gemini 1.5/2.0 Flash</p>
+        </div>
+        <button class="mb-close" data-act="x" title="Close dialog">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <div style="padding:14px;background:var(--bg-app);border:1px solid var(--border-default);border-radius:var(--radius-sm);margin-bottom:16px;font-size:12.5px;line-height:1.5">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <span style="font-weight:600;color:var(--tx-primary)">Free Plan Quota Status:</span>
+          <span class="pill ${isSet ? 'pill-interested' : 'pill-new'}" style="font-size:11px;padding:2px 8px">
+            ${isSet ? '● Active / Configured' : '○ Not Configured'}
+          </span>
+        </div>
+        <p style="margin:0 0 8px;color:var(--tx-secondary)">
+          Google provides a <b>100% Free Tier</b> with <b>1,500 requests per day</b> per API key. No credit card required.
+        </p>
+        <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" class="lk" style="font-weight:600;display:inline-flex;align-items:center;gap:4px">
+          Get your free API key at Google AI Studio ↗
+        </a>
+      </div>
+
+      <form id="f-ai-settings">
+        <div class="form-field">
+          <label style="display:flex;justify-content:space-between">
+            <span>Gemini API Key</span>
+            <span class="mu" style="font-size:11px">Stored locally in your browser</span>
+          </label>
+          <div style="display:flex;gap:8px">
+            <input type="password" id="gemini-api-key-input" name="apiKey" value="${esc(currentKey)}" placeholder="AIzaSy..." style="flex:1;font-family:var(--font-mono);font-size:12.5px" autocomplete="off" required>
+            <button type="button" class="btn btn-sm" id="btn-toggle-key-vis" data-act="toggle-key-visibility" style="padding:0 10px;font-size:11.5px">Show</button>
+          </div>
+        </div>
+
+        <div id="ai-test-result" style="display:none;margin-bottom:14px;padding:10px 12px;border-radius:var(--radius-xs);font-size:12px"></div>
+
+        <div class="row" style="justify-content:space-between;margin-top:20px;align-items:center">
+          <div>
+            ${isSet ? `<button type="button" class="btn btn-sm btn-danger" data-act="clear-ai-key">Remove Key</button>` : ''}
+          </div>
+          <div style="display:flex;gap:8px">
+            <button type="button" class="btn btn-sm" data-act="test-ai-key">⚡ Test Key</button>
+            <button type="button" class="btn btn-sm" data-act="x">Cancel</button>
+            <button type="submit" class="btn btn-sm pri">Save Key</button>
+          </div>
         </div>
       </form>
     </div>`;
