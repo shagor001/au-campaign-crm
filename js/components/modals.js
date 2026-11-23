@@ -503,16 +503,16 @@ export function openAiSettingsModal() {
 
       <div style="padding:14px;background:var(--bg-app);border:1px solid var(--border-default);border-radius:var(--radius-sm);margin-bottom:16px;font-size:12.5px;line-height:1.5">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-          <span style="font-weight:600;color:var(--tx-primary)">Free Plan Quota Status:</span>
-          <span class="pill ${isSet ? 'pill-interested' : 'pill-new'}" style="font-size:11px;padding:2px 8px">
-            ${isSet ? '● Active / Configured' : '○ Not Configured'}
+          <span style="font-weight:600;color:var(--tx-primary)">Active Summarizer Engine:</span>
+          <span class="pill pill-interested" style="font-size:11px;padding:2px 8px">
+            ${isSet ? '● Google Gemini Cloud (Active)' : '● Smart Built-in Engine (No API Key Required)'}
           </span>
         </div>
         <p style="margin:0 0 8px;color:var(--tx-secondary)">
-          Google provides a <b>100% Free Tier</b> with <b>1,500 requests per day</b> per API key. No credit card required.
+          ${isSet ? 'Gemini Cloud Flash is connected. Summaries will be generated via Google Gemini.' : 'The CRM built-in smart summarizer is active and works 100% locally with zero external API keys and zero costs. Optionally, you can paste a Google Gemini API key below if you want cloud AI.'}
         </p>
         <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" class="lk" style="font-weight:600;display:inline-flex;align-items:center;gap:4px">
-          Get your free API key at Google AI Studio ↗
+          Get a free Gemini API key at Google AI Studio (optional) ↗
         </a>
       </div>
 

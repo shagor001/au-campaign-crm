@@ -906,12 +906,6 @@ document.addEventListener('click', e => {
       break;
     }
     case 'gen-ai-summary': {
-      if (!isAiConfigured()) {
-        showNotification('Please configure your Google Gemini API key first.');
-        openAiSettingsModal();
-        break;
-      }
-
       const formSel = d.form || '#f-co-log';
       const form = $(formSel);
       if (!form) break;
@@ -926,6 +920,7 @@ document.addEventListener('click', e => {
       const spaceTypeInp = form.querySelector('[name="spaceType"]');
       const spaceSizeInp = form.querySelector('[name="spaceSize"]');
       const contactSelect = isAd ? $('#ad-contact-select') : $('#co-lg-contact-select');
+      const cbInp = isAd ? $('#ad-cb') : $('#co-lg-cb');
 
       const callData = {
         companyName: co.name || 'Client',
@@ -934,11 +929,12 @@ document.addEventListener('click', e => {
         notes: (notesEl ? notesEl.value : '').trim(),
         customerRequirements: (reqEl ? reqEl.value : '').trim(),
         spaceType: spaceTypeInp ? spaceTypeInp.value : '',
-        spaceSize: spaceSizeInp ? spaceSizeInp.value : ''
+        spaceSize: spaceSizeInp ? spaceSizeInp.value : '',
+        cb: (cbInp ? cbInp.value : '') || co.cb || ''
       };
 
-      if (!callData.notes && !callData.customerRequirements) {
-        showNotification('Please enter call notes or customer requirements first.');
+      if (!callData.notes && !callData.customerRequirements && !callData.status) {
+        showNotification('Please enter call notes or select a disposition first.');
         if (notesEl) notesEl.focus();
         break;
       }
