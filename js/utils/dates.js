@@ -50,18 +50,39 @@ export const fdy = s => {
   return isNaN(d) ? esc(s) : d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
 };
 
-export const fdt = s => {
+export const formatFriendlyDateTime = s => {
   if (!s) return '—';
+  if (typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s.trim())) {
+    const parts = s.trim().split('-');
+    const d = new Date(+parts[0], +parts[1] - 1, +parts[2]);
+    if (isNaN(d)) return esc(s);
+    const now = new Date();
+    if (d.toDateString() === now.toDateString()) return 'Today';
+    const yest = new Date(now);
+    yest.setDate(now.getDate() - 1);
+    if (d.toDateString() === yest.toDateString()) return 'Yesterday';
+    return d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+
   const d = new Date(s);
-  return isNaN(d) ? esc(s) : d.toLocaleString('en-AU', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true
-  });
+  if (isNaN(d.getTime())) return esc(s);
+
+  const now = new Date();
+  const isToday = d.toDateString() === now.toDateString();
+  const yest = new Date(now);
+  yest.setDate(now.getDate() - 1);
+  const isYesterday = d.toDateString() === yest.toDateString();
+
+  const timeStr = d.toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit', hour12: true });
+
+  if (isToday) return `Today, ${timeStr}`;
+  if (isYesterday) return `Yesterday, ${timeStr}`;
+
+  const dateStr = d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+  return `${dateStr}, ${timeStr}`;
 };
+
+export const fdt = s => formatFriendlyDateTime(s);
 
 // Generate ISO datetime string offset by hours or set to a specific hour tomorrow
 export const getQuickCallbackTime = type => {

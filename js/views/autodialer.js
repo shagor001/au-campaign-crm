@@ -7,7 +7,7 @@ import { esc } from '../utils/dom.js';
 import { isA, isEventAccessible, getAgentName } from '../services/auth.js';
 import { PILL_CLASS, IC, NOTE_SNIPPETS } from '../config.js';
 import { log, save } from '../services/sync.js';
-import { getAuTimezoneInfo, getQuickCallbackTime, today, formatDateRange } from '../utils/dates.js';
+import { getAuTimezoneInfo, getQuickCallbackTime, formatFriendlyDateTime, today, formatDateRange } from '../utils/dates.js';
 import { getCompanyEvents, getCompanyContacts } from './company-detail.js';
 
 export function startAdLead(renderFn) {
@@ -566,7 +566,7 @@ export function autodialerView() {
                     ${n.contactSpokenTo ? `<span class="mu">· Spoke with <b>${esc(n.contactSpokenTo)}</b></span>` : ''}
                     ${n.status ? `<span class="pill ${PILL_CLASS[n.status] || 'pill-new'}" style="font-size:10px;padding:1px 5px">${esc(n.status)}</span>` : ''}
                   </div>
-                  <span class="mu">${esc(n.at || '')}</span>
+                  <span class="mu" style="font-size:11px" title="${esc(n.at || '')}">${esc(formatFriendlyDateTime(n.at))}</span>
                 </div>
                 ${(n.qualification && n.qualification.customerRequirements) ? `
                   <div style="font-size:12px;background:var(--accent-subtle);border-left:3px solid var(--accent-primary, #5B5BD6);padding:6px 10px;margin:6px 0;border-radius:2px">
