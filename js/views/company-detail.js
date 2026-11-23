@@ -485,7 +485,12 @@ export function companyDetailView() {
             <label style="font-size:12.5px;font-weight:500;text-transform:none;letter-spacing:normal;color:var(--tx-primary);margin-bottom:6px">
               Scheduled Callback Date & Time
             </label>
-            <input type="datetime-local" name="cb" id="co-lg-cb" value="${(c.cb || '').slice(0, 16)}" style="max-width:320px">
+            <div style="display:flex;align-items:center;gap:8px;max-width:380px">
+              <input type="datetime-local" name="cb" id="co-lg-cb" value="${(c.cb || '').slice(0, 16)}" style="flex:1;cursor:pointer">
+              <button type="button" class="btn btn-sm" data-act="open-picker" data-target="#co-lg-cb" style="display:inline-flex;align-items:center;gap:6px;padding:7px 12px;font-size:12px;white-space:nowrap" title="Click to open calendar">
+                ${IC.calendar} <span>Calendar</span>
+              </button>
+            </div>
             <div class="cb-shortcuts" style="margin-top:8px">
               <button type="button" class="cb-btn" data-act="set-cb" data-target="#co-lg-cb" data-type="2h">+2 Hours</button>
               <button type="button" class="cb-btn" data-act="set-cb" data-target="#co-lg-cb" data-type="tomorrow_10am">Tomorrow 10 AM</button>

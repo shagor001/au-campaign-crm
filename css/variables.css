@@ -143,6 +143,8 @@
 
 /* Linear-Grade Dark Mode Theme */
 [data-theme="dark"] {
+  color-scheme: dark;
+
   /* Surface & Background Colors */
   --bg-app: #0E1015;
   --bg-surface: #151821;

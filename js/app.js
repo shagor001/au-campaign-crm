@@ -16,7 +16,7 @@ let lastSubmitBtn = null;
 function showNotification(msg) {
   const el = document.createElement('div');
   el.className = 'quick-notice';
-  el.style.cssText = 'position:fixed;top:20px;right:20px;z-index:999999;background:var(--tx-primary);color:var(--bg-card);padding:10px 18px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;box-shadow:0 4px 12px rgba(0,0,0,0.18);transition:opacity 0.3s ease;pointer-events:none;';
+  el.style.cssText = 'position:fixed;top:20px;right:20px;z-index:999999;background:var(--bg-surface);color:var(--tx-primary);border:1px solid var(--color-success-border);border-left:3px solid var(--color-success);padding:12px 20px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;box-shadow:var(--shadow-lg);transition:opacity 0.3s ease;pointer-events:none;max-width:360px;';
   el.textContent = msg;
   document.body.appendChild(el);
   setTimeout(() => {
@@ -452,6 +452,14 @@ function onSub(f, e) {
 
 // Delegated Click Handlers
 document.addEventListener('click', e => {
+  // Open native calendar picker when clicking anywhere on date / datetime inputs
+  const dateInput = e.target.closest('input[type="date"], input[type="datetime-local"]');
+  if (dateInput && typeof dateInput.showPicker === 'function') {
+    try {
+      dateInput.showPicker();
+    } catch (err) {}
+  }
+
   const submitBtn = e.target.closest('button[type="submit"]');
   if (submitBtn) lastSubmitBtn = submitBtn;
 
@@ -794,6 +802,21 @@ document.addEventListener('click', e => {
       const input = $(targetSel);
       if (input && type) {
         input.value = getQuickCallbackTime(type);
+      }
+      break;
+    }
+    case 'open-picker': {
+      const input = $(d.target);
+      if (input) {
+        if (typeof input.showPicker === 'function') {
+          try {
+            input.showPicker();
+          } catch (err) {
+            input.focus();
+          }
+        } else {
+          input.focus();
+        }
       }
       break;
     }
